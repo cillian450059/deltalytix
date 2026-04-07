@@ -26,7 +26,14 @@ export type WidgetType =
   | 'tagWidget'
   | 'riskRewardRatio'
   | 'mindsetWidget'
-  // | 'marketChart'
+  | 'marketChart'
+  | 'mfeMaeScatter'
+  | 'rollingStatisticsChart'
+  | 'setupBreakdownTable'
+  | 'expectancyCard'
+  | 'sharpeCard'
+  | 'maxDrawdownCard'
+  | 'monteCarloWidget'
 export type WidgetSize = 'tiny' | 'small' | 'small-long' | 'medium' | 'large' | 'extra-large'
 
 export interface LayoutItem {

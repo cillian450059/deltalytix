@@ -173,6 +173,73 @@ export const defaultLayouts: DashboardLayoutWithWidgets = {
       w: 6,
       h: 4,
     },
+    // ── Advanced statistics row ─────────────────────────────────────────────
+    {
+      i: "widget1770000000001",
+      type: "expectancyCard",
+      size: "tiny",
+      x: 0,
+      y: 25,
+      w: 4,
+      h: 1,
+    },
+    {
+      i: "widget1770000000002",
+      type: "sharpeCard",
+      size: "tiny",
+      x: 4,
+      y: 25,
+      w: 4,
+      h: 1,
+    },
+    {
+      i: "widget1770000000003",
+      type: "maxDrawdownCard",
+      size: "tiny",
+      x: 8,
+      y: 25,
+      w: 4,
+      h: 1,
+    },
+    // ── MFE/MAE & Rolling chart row ─────────────────────────────────────────
+    {
+      i: "widget1770000000004",
+      type: "mfeMaeScatter",
+      size: "large",
+      x: 0,
+      y: 26,
+      w: 6,
+      h: 8,
+    },
+    {
+      i: "widget1770000000005",
+      type: "rollingStatisticsChart",
+      size: "large",
+      x: 6,
+      y: 26,
+      w: 6,
+      h: 8,
+    },
+    // ── Setup breakdown full-width row ──────────────────────────────────────
+    {
+      i: "widget1770000000006",
+      type: "setupBreakdownTable",
+      size: "extra-large",
+      x: 0,
+      y: 34,
+      w: 12,
+      h: 8,
+    },
+    // ── Monte Carlo simulation ───────────────────────────────────────────
+    {
+      i: "widget1770000000007",
+      type: "monteCarloWidget",
+      size: "large",
+      x: 0,
+      y: 42,
+      w: 12,
+      h: 14,
+    },
   ],
   mobile: [
     {

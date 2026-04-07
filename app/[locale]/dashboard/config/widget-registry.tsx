@@ -35,7 +35,14 @@ import { MindsetWidget } from '../components/mindset/mindset-widget'
 import ChatWidget from '../components/chat/chat'
 import { useI18n } from '@/locales/client'
 import { translateWeekday } from '@/lib/translation-utils'
-// import MarketChart from '../components/market/market-chart'
+import MarketChart from '../components/charts/market-chart'
+import MfeMaeScatter from '../components/charts/mfe-mae-scatter'
+import RollingStatisticsChart from '../components/charts/rolling-statistics-chart'
+import SetupBreakdownTable from '../components/charts/setup-breakdown-table'
+import ExpectancyCard from '../components/statistics/expectancy-card'
+import SharpeCard from '../components/statistics/sharpe-card'
+import MaxDrawdownCard from '../components/statistics/max-drawdown-card'
+import MonteCarloWidget from '../components/charts/monte-carlo-widget'
 
 export interface WidgetConfig {
   type: WidgetType
@@ -589,15 +596,157 @@ export const WIDGET_REGISTRY: Record<WidgetType, WidgetConfig> = {
     getComponent: ({ size }) => <RiskRewardRatioCard size={size} />,
     getPreview: () => <RiskRewardRatioCard size="tiny" />
   },
-  // marketChart: {
-  //   type: 'marketChart',
-  //   defaultSize: 'large',
-  //   allowedSizes: ['small', 'medium', 'large'],
-  //   category: 'charts',
-  //   previewHeight: 300,
-  //   getComponent: ({ size }) => <MarketChart />,
-  //   getPreview: () => <MarketChart />
-  // },
+  mfeMaeScatter: {
+    type: 'mfeMaeScatter',
+    defaultSize: 'medium',
+    allowedSizes: ['small', 'medium', 'large', 'extra-large'],
+    category: 'charts',
+    previewHeight: 300,
+    getComponent: ({ size }) => <MfeMaeScatter size={size} />,
+    getPreview: () => (
+      <Card className="h-[300px]">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium">MFE / MAE</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col gap-1 mb-3 text-xs text-muted-foreground">
+            <span>X-axis: Max Adverse Excursion</span>
+            <span>Y-axis: Max Favorable Excursion</span>
+          </div>
+          <ResponsiveContainer width="100%" height={180}>
+            <LineChart data={[{x:1,y:2},{x:2,y:3},{x:1.5,y:4},{x:3,y:3},{x:4,y:5},{x:2,y:1}]}>
+              <XAxis dataKey="x" hide />
+              <YAxis hide />
+              <Line type="monotone" dataKey="y" stroke="hsl(217,91%,60%)" strokeWidth={0} dot={{ r: 4, fill: "hsl(142,71%,45%)" }} />
+            </LineChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+    )
+  },
+  rollingStatisticsChart: {
+    type: 'rollingStatisticsChart',
+    defaultSize: 'medium',
+    allowedSizes: ['small', 'medium', 'large'],
+    category: 'charts',
+    previewHeight: 300,
+    getComponent: ({ size }) => <RollingStatisticsChart size={size} />,
+    getPreview: () => (
+      <Card className="h-[300px]">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium">Rolling Statistics</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={210}>
+            <LineChart data={[{v:45},{v:52},{v:48},{v:58},{v:55},{v:62},{v:60},{v:65},{v:58},{v:70}]}>
+              <XAxis dataKey="v" hide />
+              <YAxis hide />
+              <Line type="monotone" dataKey="v" stroke="hsl(142,71%,45%)" strokeWidth={2} dot={false} />
+            </LineChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+    )
+  },
+  setupBreakdownTable: {
+    type: 'setupBreakdownTable',
+    defaultSize: 'large',
+    allowedSizes: ['medium', 'large', 'extra-large'],
+    category: 'charts',
+    previewHeight: 300,
+    getComponent: ({ size }) => <SetupBreakdownTable size={size} />,
+    getPreview: () => (
+      <Card className="h-[300px]">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium">Setup Breakdown</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="w-full flex flex-col gap-1.5">
+            {['Breakout', 'Reversal', 'Momentum', 'Mean Rev'].map((label, i) => (
+              <div key={label} className="flex items-center justify-between px-2 py-1 border border-border/50 rounded text-xs">
+                <span className="font-medium">{label}</span>
+                <div className="flex gap-4 text-muted-foreground">
+                  <span>{[62,55,70,45][i]}%</span>
+                  <span className={i < 3 ? 'text-green-500' : 'text-red-500'}>{['+$1.24','+$0.87','+$2.10','-$0.40'][i]}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    )
+  },
+  expectancyCard: {
+    type: 'expectancyCard',
+    defaultSize: 'tiny',
+    allowedSizes: ['tiny'],
+    category: 'statistics',
+    previewHeight: 80,
+    getComponent: ({ size }) => <ExpectancyCard />,
+    getPreview: () => <ExpectancyCard />
+  },
+  sharpeCard: {
+    type: 'sharpeCard',
+    defaultSize: 'tiny',
+    allowedSizes: ['tiny'],
+    category: 'statistics',
+    previewHeight: 80,
+    getComponent: ({ size }) => <SharpeCard />,
+    getPreview: () => <SharpeCard />
+  },
+  maxDrawdownCard: {
+    type: 'maxDrawdownCard',
+    defaultSize: 'tiny',
+    allowedSizes: ['tiny'],
+    category: 'statistics',
+    previewHeight: 80,
+    getComponent: ({ size }) => <MaxDrawdownCard />,
+    getPreview: () => <MaxDrawdownCard />
+  },
+  monteCarloWidget: {
+    type: 'monteCarloWidget',
+    defaultSize: 'large',
+    allowedSizes: ['large', 'extra-large'],
+    category: 'analytics',
+    previewHeight: 320,
+    getComponent: ({ size }) => <MonteCarloWidget />,
+    getPreview: () => (
+      <div className="flex h-[320px] flex-col items-center justify-center gap-2 rounded-lg border border-border/50 bg-muted/20 p-6 text-center">
+        <span className="text-2xl">🎲</span>
+        <p className="text-sm font-medium">Monte Carlo Simulation</p>
+        <p className="text-xs text-muted-foreground">
+          Forward-looking equity curve confidence bands, ruin probability, and return distribution across thousands of simulated trade sequences.
+        </p>
+      </div>
+    ),
+  },
+  marketChart: {
+    type: 'marketChart',
+    defaultSize: 'medium',
+    allowedSizes: ['small', 'medium', 'large'],
+    category: 'charts',
+    previewHeight: 300,
+    getComponent: ({ size }) => <MarketChart size={size} />,
+    getPreview: () => (
+      <Card className="h-[300px]">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium">Market Indices</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex gap-4 mb-3">
+            <div className="text-xs"><span className="font-medium">S&P 500</span> <span className="text-green-500">+0.5%</span></div>
+            <div className="text-xs"><span className="font-medium">NASDAQ</span> <span className="text-green-500">+0.8%</span></div>
+            <div className="text-xs"><span className="font-medium">SOX</span> <span className="text-red-500">-0.3%</span></div>
+          </div>
+          <ResponsiveContainer width="100%" height={200}>
+            <LineChart data={[{x:1,y:100},{x:2,y:102},{x:3,y:101},{x:4,y:105},{x:5,y:103},{x:6,y:108}]}>
+              <Line type="monotone" dataKey="y" stroke="#22c55e" strokeWidth={1.5} dot={false} />
+            </LineChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+    )
+  },
 }
 
 export function getWidgetsByCategory(category: WidgetConfig['category']) {
