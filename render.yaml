@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: firstrade-service
+    runtime: docker
+    dockerfilePath: firstrade-service/Dockerfile
+    envVars:
+      - key: FIRSTRADE_SERVICE_API_KEY
+        sync: false
+      - key: ALLOWED_ORIGIN
+        sync: false
+    healthCheckPath: /health
+    autoDeploy: true
