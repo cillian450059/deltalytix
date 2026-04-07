@@ -193,6 +193,11 @@ function EquityCurveChart({ result }: { result: MonteCarloResult }) {
 
 function ReturnHistogram({ result }: { result: MonteCarloResult }) {
   const bins = buildHistogram(result.finalReturns, 40);
+
+  // Historical actual return from the original equity curve
+  const lastEquity = result.originalCurve[result.originalCurve.length - 1] ?? result.initialCapital;
+  const historicalReturn = ((lastEquity - result.initialCapital) / result.initialCapital) * 100;
+
   return (
     <ResponsiveContainer width="100%" height={180}>
       <BarChart data={bins} margin={{ top: 4, right: 8, bottom: 0, left: 8 }}>
@@ -209,7 +214,20 @@ function ReturnHistogram({ result }: { result: MonteCarloResult }) {
           labelFormatter={(l: number) => `Return ≈ ${l.toFixed(1)}%`}
           contentStyle={{ background: "#1a1a2e", border: "1px solid #333", fontSize: 11 }}
         />
+        {/* Breakeven */}
         <ReferenceLine x={0} stroke="rgba(255,255,255,0.3)" strokeDasharray="3 3" />
+        {/* Historical actual return */}
+        <ReferenceLine
+          x={historicalReturn}
+          stroke="#f59e0b"
+          strokeWidth={2}
+          label={{
+            value: `Actual ${historicalReturn >= 0 ? "+" : ""}${historicalReturn.toFixed(1)}%`,
+            position: historicalReturn >= 0 ? "insideTopRight" : "insideTopLeft",
+            fontSize: 10,
+            fill: "#f59e0b",
+          }}
+        />
         <Bar dataKey="pct" radius={[2, 2, 0, 0]}>
           {bins.map((b, i) => (
             <Cell
