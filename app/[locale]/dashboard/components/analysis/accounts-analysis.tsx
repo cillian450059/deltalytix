@@ -350,7 +350,7 @@ export function AccountsAnalysis({ onStatusChange }: AccountsAnalysisProps) {
                                 {account.accountNumber}
                               </td>
                               <td
-                                className={`p-2 ${account.netPnL >= 0 ? "text-green-600" : "text-red-600"}`}
+                                className={`p-2 ${account.netPnL >= 0 ? "text-yellow-600" : "text-red-600"}`}
                               >
                                 ${account.netPnL?.toLocaleString() || 0}
                               </td>
@@ -371,7 +371,7 @@ export function AccountsAnalysis({ onStatusChange }: AccountsAnalysisProps) {
                                       ? "text-red-600 border-red-200"
                                       : account.riskLevel === "medium"
                                         ? "text-yellow-600 border-yellow-200"
-                                        : "text-green-600 border-green-200"
+                                        : "text-yellow-600 border-yellow-200"
                                   }
                                 >
                                   {account.riskLevel || "N/A"}
@@ -391,8 +391,8 @@ export function AccountsAnalysis({ onStatusChange }: AccountsAnalysisProps) {
               accountPerformanceData.worstPerformingAccount) && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {accountPerformanceData.bestPerformingAccount && (
-                  <Card className="p-4 border-green-200 bg-green-50 dark:bg-green-950/20">
-                    <h5 className="font-medium text-green-800 dark:text-green-200 mb-2">
+                  <Card className="p-4 border-yellow-200 bg-yellow-50 dark:bg-yellow-950/20">
+                    <h5 className="font-medium text-yellow-800 dark:text-yellow-200 mb-2">
                       {t("analysis.bestPerformingAccount")}
                     </h5>
                     <div className="space-y-1 text-sm">
@@ -405,7 +405,7 @@ export function AccountsAnalysis({ onStatusChange }: AccountsAnalysisProps) {
                       </div>
                       <div>
                         <strong>{t("analysis.netPnL")}:</strong>{" "}
-                        <span className="text-green-600">
+                        <span className="text-yellow-600">
                           $
                           {accountPerformanceData.bestPerformingAccount.netPnL?.toLocaleString() ||
                             0}
@@ -577,7 +577,7 @@ export function AccountsAnalysis({ onStatusChange }: AccountsAnalysisProps) {
                         {/* Strengths and Improvements */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           <Card className="p-6">
-                            <h4 className="font-semibold mb-3 text-green-700 dark:text-green-400">
+                            <h4 className="font-semibold mb-3 text-yellow-700 dark:text-yellow-400">
                               {t("analysis.strengths")}
                             </h4>
                             <ul className="space-y-2">
@@ -589,7 +589,7 @@ export function AccountsAnalysis({ onStatusChange }: AccountsAnalysisProps) {
                                     key={index}
                                     className="text-sm text-muted-foreground flex items-start gap-2"
                                   >
-                                    <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                                    <CheckCircle className="h-4 w-4 text-yellow-500 mt-0.5 shrink-0" />
                                     {strength}
                                   </li>
                                 ),

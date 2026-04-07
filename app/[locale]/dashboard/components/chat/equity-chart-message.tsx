@@ -52,7 +52,7 @@ const formatCurrency = (value: number) =>
 // Reduced color array for better performance
 const ACCOUNT_COLORS = [
   "hsl(var(--chart-loss))",
-  "hsl(var(--chart-2))",
+  "#eab308",
   "hsl(var(--chart-win))",
   "hsl(var(--chart-4))",
   "hsl(var(--chart-5))",
@@ -97,7 +97,7 @@ const renderDot = (props: any) => {
           cx={cx}
           cy={cy}
           r={5}
-          fill="#ff6b6b"
+          fill="hsl(var(--chart-loss))"
           stroke="white"
           strokeWidth={2}
         />
@@ -135,7 +135,7 @@ const renderDot = (props: any) => {
           cx={cx}
           cy={cy}
           r={5}
-          fill="#ff6b6b"
+          fill="hsl(var(--chart-loss))"
           stroke="white"
           strokeWidth={2}
         />
@@ -363,8 +363,8 @@ export function EquityChartMessage({
           strokeWidth={2}
           dot={renderDot}
           isAnimationActive={false}
-          activeDot={{ r: 3, style: { fill: "hsl(var(--chart-2))" } }}
-          stroke="hsl(var(--chart-2))"
+          activeDot={{ r: 3, style: { fill: "#eab308" } }}
+          stroke="#eab308"
           connectNulls={false}
         />
       );

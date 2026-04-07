@@ -67,6 +67,7 @@ export const ModelName = {
   BusinessInvitation: 'BusinessInvitation',
   Group: 'Group',
   Account: 'Account',
+  DailyEquity: 'DailyEquity',
   Payout: 'Payout',
   DashboardLayout: 'DashboardLayout',
   SubscriptionFeedback: 'SubscriptionFeedback',
@@ -223,7 +224,8 @@ export const SynchronizationScalarFieldEnum = {
   token: 'token',
   tokenExpiresAt: 'tokenExpiresAt',
   dailySyncTime: 'dailySyncTime',
-  includedFeeTypes: 'includedFeeTypes'
+  includedFeeTypes: 'includedFeeTypes',
+  needsReauth: 'needsReauth'
 } as const
 
 export type SynchronizationScalarFieldEnum = (typeof SynchronizationScalarFieldEnum)[keyof typeof SynchronizationScalarFieldEnum]
@@ -365,6 +367,19 @@ export const AccountScalarFieldEnum = {
 } as const
 
 export type AccountScalarFieldEnum = (typeof AccountScalarFieldEnum)[keyof typeof AccountScalarFieldEnum]
+
+
+export const DailyEquityScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  accountNumber: 'accountNumber',
+  date: 'date',
+  equity: 'equity',
+  cash: 'cash',
+  createdAt: 'createdAt'
+} as const
+
+export type DailyEquityScalarFieldEnum = (typeof DailyEquityScalarFieldEnum)[keyof typeof DailyEquityScalarFieldEnum]
 
 
 export const PayoutScalarFieldEnum = {

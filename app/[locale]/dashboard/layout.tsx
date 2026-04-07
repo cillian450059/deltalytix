@@ -8,6 +8,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { RithmicSyncContextProvider } from "@/context/rithmic-sync-context";
 import { TradovateSyncContextProvider } from "@/context/tradovate-sync-context";
 import { DxFeedSyncContextProvider } from "@/context/dxfeed-sync-context";
+import { FirstradeSyncContextProvider } from "@/context/firstrade-sync-context"
+import { DailyBalanceFetcher } from "./components/import/firstrade/sync/daily-balance-fetcher";
 
 export default async function RootLayout({
   children,
@@ -21,11 +23,14 @@ export default async function RootLayout({
           <RithmicSyncContextProvider>
             <TradovateSyncContextProvider>
               <DxFeedSyncContextProvider>
-                <RithmicSyncNotifications />
-                <Toaster />
-                <Navbar />
-                {children}
-                <Modals />
+                <FirstradeSyncContextProvider>
+                  <DailyBalanceFetcher />
+                  <RithmicSyncNotifications />
+                  <Toaster />
+                  <Navbar />
+                  {children}
+                  <Modals />
+                </FirstradeSyncContextProvider>
               </DxFeedSyncContextProvider>
             </TradovateSyncContextProvider>
           </RithmicSyncContextProvider>

@@ -22,14 +22,15 @@ export default function CumulativePnlCard({ size = 'medium' }: CumulativePnlCard
   const t = useI18n()
 
     return (
-      <Card className="flex items-center justify-center h-full p-2">
-        <div className="flex items-center gap-1.5">
-          <PiggyBank className="h-4 w-4 text-muted-foreground" />
+      <Card className="h-full">
+        <div className="flex items-center justify-center h-full gap-1.5">
+          <PiggyBank className="h-3 w-3 text-yellow-500" />
+          <span className="text-xs text-muted-foreground">PnL</span>
           <span className={cn(
-            "font-semibold text-base",
-            isPositive ? "text-green-500" : "text-red-500"
+            "font-semibold text-base font-mono tabular-nums",
+            isPositive ? "text-yellow-500" : "text-red-500"
           )}>
-            ${Math.abs(totalPnl).toFixed(2)}
+            {isPositive ? '+' : '-'}${Math.abs(totalPnl).toFixed(2)}
           </span>
           <TooltipProvider>
             <Tooltip>

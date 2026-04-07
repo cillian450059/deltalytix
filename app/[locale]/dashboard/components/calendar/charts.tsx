@@ -25,11 +25,11 @@ interface ChartsProps {
 const chartConfig = {
   pnl: {
     label: "P&L Distribution",
-    color: "hsl(var(--success))",
+    color: "#eab308",
   },
   equity: {
     label: "Equity Variation",
-    color: "hsl(var(--chart-2))",
+    color: "#eab308",
   },
 } satisfies ChartConfig
 
@@ -145,7 +145,7 @@ export function Charts({ dayData, isWeekly = false }: ChartsProps) {
         <div className="bg-background p-2 border rounded shadow-xs text-xs md:text-sm">
           <p className="font-semibold">{isWeekly ? data.date : data.time}</p>
           {payload.map((entry: any, index: number) => (
-            <p key={index} className={`font-bold ${entry.dataKey === 'pnl' ? (entry.value >= 0 ? 'text-green-600' : 'text-red-600') : 'text-blue-600'}`}>
+            <p key={index} className={`font-bold ${entry.dataKey === 'pnl' ? (entry.value >= 0 ? 'text-yellow-600' : 'text-red-600') : 'text-yellow-600'}`}>
               {entry.name}: {formatCurrency(entry.value)}
             </p>
           ))}
@@ -167,7 +167,7 @@ export function Charts({ dayData, isWeekly = false }: ChartsProps) {
       return (
         <div className="bg-background p-2 border rounded shadow-xs text-xs md:text-sm">
           <p className="font-semibold">{data.name}</p>
-          <p className={`font-bold ${data.value >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+          <p className={`font-bold ${data.value >= 0 ? 'text-yellow-600' : 'text-red-600'}`}>
             {formatCurrency(data.value)}
           </p>
           {data.account !== 'total' && (
@@ -238,7 +238,7 @@ export function Charts({ dayData, isWeekly = false }: ChartsProps) {
                   {equityChartData.map((entry, index) => (
                     <Cell
                       key={`cell-${index}`}
-                      fill={entry.pnl >= 0 ? 'hsl(var(--success))' : 'hsl(var(--destructive))'}
+                      fill={entry.pnl >= 0 ? '#eab308' : 'hsl(var(--chart-loss))'}
                       className="transition-all duration-300 ease-in-out hover:opacity-70"
                     />
                   ))}
@@ -326,7 +326,7 @@ export function Charts({ dayData, isWeekly = false }: ChartsProps) {
                   {chartData.map((entry, index) => (
                     <Cell
                       key={`cell-${index}`}
-                      fill={entry.value >= 0 ? colors[index % colors.length] : `hsl(var(--destructive))`}
+                      fill={entry.value >= 0 ? colors[index % colors.length] : `hsl(var(--chart-loss))`}
                       className="transition-all duration-300 ease-in-out hover:opacity-80"
                     />
                   ))}

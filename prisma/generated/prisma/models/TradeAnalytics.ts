@@ -1196,6 +1196,11 @@ export type TradeAnalyticsFindManyArgs<ExtArgs extends runtime.Types.Extensions.
    * Skip the first `n` TradeAnalytics.
    */
   skip?: number
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+   * 
+   * Filter by unique combinations of TradeAnalytics.
+   */
   distinct?: Prisma.TradeAnalyticsScalarFieldEnum | Prisma.TradeAnalyticsScalarFieldEnum[]
 }
 

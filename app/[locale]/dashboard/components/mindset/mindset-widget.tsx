@@ -1,13 +1,13 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel"
 import { Journaling } from "./journaling"
 import { Timeline } from "./timeline"
 import { MindsetSummary } from "./mindset-summary"
 import { useI18n } from "@/locales/client"
-import { Info, ChevronLeft, ChevronRight, ChevronUp, ChevronDown } from "lucide-react"
+import { Info, ChevronLeft, ChevronRight, RefreshCw, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
   Tooltip as UITooltip,
@@ -27,6 +27,7 @@ import { useFinancialEventsStore } from "@/store/widgets/financial-events-store"
 import { useTradesStore } from "@/store/trades-store"
 import { useCurrentLocale } from "@/locales/client"
 import { FinancialEvent } from "@/prisma/generated/prisma/browser"
+import { useFirstradeSyncContext } from "@/context/firstrade-sync-context"
 
 interface MindsetWidgetProps {
   size: WidgetSize
@@ -35,12 +36,13 @@ interface MindsetWidgetProps {
 export function MindsetWidget({ size }: MindsetWidgetProps) {
   const [api, setApi] = useState<CarouselApi>()
   const [current, setCurrent] = useState(0)
-  const [emotionValue, setEmotionValue] = useState(0)
   const [selectedNews, setSelectedNews] = useState<string[]>([])
   const [journalContent, setJournalContent] = useState("")
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [isEditing, setIsEditing] = useState(true)
   const [isTimelineVisible, setIsTimelineVisible] = useState(true)
+  const [autoSaveStatus, setAutoSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
+  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const moods = useMoodStore(state => state.moods)
   const setMoods = useMoodStore(state => state.setMoods)
   const financialEvents = useFinancialEventsStore(state => state.events)
@@ -48,6 +50,18 @@ export function MindsetWidget({ size }: MindsetWidgetProps) {
   const setTrades = useTradesStore(state => state.setTrades)
   const locale = useCurrentLocale()
   const t = useI18n()
+
+  // Firstrade auto-sync
+  const { sessionId, accounts, performSyncForAllAccounts, isAutoSyncing } = useFirstradeSyncContext()
+  const hasSyncedRef = useRef(false)
+
+  // Auto-sync on mount if session + accounts available
+  useEffect(() => {
+    if (sessionId && accounts.length > 0 && !hasSyncedRef.current && !isAutoSyncing) {
+      hasSyncedRef.current = true
+      performSyncForAllAccounts(sessionId)
+    }
+  }, [sessionId, accounts, performSyncForAllAccounts, isAutoSyncing])
 
   // Consolidated effect for carousel and mood data handling
   useEffect(() => {
@@ -76,8 +90,6 @@ export function MindsetWidget({ size }: MindsetWidgetProps) {
 
       // If it's today and we have data, show summary
       if (isToday(selectedDate) && hasTodayData) {
-        // Set data to today's data
-        setEmotionValue(mood?.emotionValue ?? 50)
         setSelectedNews(mood?.selectedNews ?? [])
         setJournalContent(mood?.journalContent ?? "")
         setIsEditing(true)
@@ -86,22 +98,40 @@ export function MindsetWidget({ size }: MindsetWidgetProps) {
       }
 
       if (mood) {
-        setEmotionValue(mood.emotionValue ?? 50)
         setSelectedNews(mood.selectedNews ?? [])
         setJournalContent(mood.journalContent ?? "")
         api.scrollTo(1) // Summary is now index 1
       } else {
-        // Reset all values if no mood data exists for the selected date
-        setEmotionValue(0)
         setSelectedNews([])
         setJournalContent("")
       }
     }
   }, [api, selectedDate, moods])
 
-  const handleEmotionChange = (value: number) => {
-    setEmotionValue(value)
-  }
+  // Debounced auto-save: fires 2 s after the last content change
+  const triggerAutoSave = useCallback((content: string, news: string[], date: Date, currentMoods: typeof moods) => {
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current)
+    autoSaveTimerRef.current = setTimeout(async () => {
+      setAutoSaveStatus('saving')
+      try {
+        const dateKey = format(date, 'yyyy-MM-dd')
+        const savedMood = await saveMindset({ emotionValue: 50, selectedNews: news, journalContent: content }, dateKey)
+        const filtered = (currentMoods ?? []).filter(m => {
+          if (!m?.day) return true
+          const d = m.day instanceof Date ? m.day : new Date(m.day)
+          return format(d, 'yyyy-MM-dd') !== dateKey
+        })
+        setMoods([...filtered, savedMood])
+        setAutoSaveStatus('saved')
+        setTimeout(() => setAutoSaveStatus('idle'), 2000)
+      } catch {
+        setAutoSaveStatus('idle')
+      }
+    }, 2000)
+  }, [setMoods])
+
+  // Clear auto-save timer on unmount
+  useEffect(() => () => { if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current) }, [])
 
   const handleNewsSelection = (newsIds: string[]) => {
     setSelectedNews(newsIds)
@@ -109,12 +139,13 @@ export function MindsetWidget({ size }: MindsetWidgetProps) {
 
   const handleJournalChange = (content: string) => {
     setJournalContent(content)
+    triggerAutoSave(content, selectedNews, selectedDate, moods)
   }
 
   const handleApplyTagToAll = async (tag: string) => {
     try {
       const dateKey = format(selectedDate, 'yyyy-MM-dd')
-      
+
       // Find all trades for this day
       const tradesForDay = trades.filter(trade => {
         const entryDate = trade.entryDate
@@ -123,9 +154,9 @@ export function MindsetWidget({ size }: MindsetWidgetProps) {
         const closeMatches = closeDate && (closeDate === dateKey || closeDate.startsWith(dateKey))
         return entryMatches || closeMatches
       })
-      
+
       const tradeIds = tradesForDay.map(trade => trade.id)
-      
+
       // Update local state immediately for instant feedback
       const updatedTrades = trades.map(trade => {
         if (tradeIds.includes(trade.id)) {
@@ -137,10 +168,10 @@ export function MindsetWidget({ size }: MindsetWidgetProps) {
         return trade
       })
       setTrades(updatedTrades)
-      
+
       // Then update on server
       await addTagsToTradesForDay(dateKey, [tag])
-      
+
       toast.success(t('mindset.tags.tagApplied'), {
         description: t('mindset.tags.tagAppliedDescription', { tag }),
       })
@@ -157,7 +188,7 @@ export function MindsetWidget({ size }: MindsetWidgetProps) {
     try {
       const dateKey = format(selectedDate, 'yyyy-MM-dd')
       const savedMood = await saveMindset({
-        emotionValue,
+        emotionValue: 50,
         selectedNews,
         journalContent,
       }, dateKey)
@@ -198,7 +229,6 @@ export function MindsetWidget({ size }: MindsetWidgetProps) {
 
       // If the deleted entry was the selected date, reset the form
       if (dateKey === format(selectedDate, 'yyyy-MM-dd')) {
-        setEmotionValue(50)
         setSelectedNews([])
         setJournalContent("")
         setIsEditing(true)
@@ -211,7 +241,7 @@ export function MindsetWidget({ size }: MindsetWidgetProps) {
 
   const handleDateSelect = (date: Date) => {
     setSelectedDate(date)
-    
+
     // Find if we have data for the selected date
     const moodForDate = moods?.find(mood => {
       if (!mood?.day) return false
@@ -220,16 +250,11 @@ export function MindsetWidget({ size }: MindsetWidgetProps) {
     })
 
     if (moodForDate) {
-      // If we have data, update all the state values
-      console.warn("We have data for the selected date")
-      setEmotionValue(moodForDate.emotionValue ?? 50)
       setSelectedNews(moodForDate.selectedNews ?? [])
       setJournalContent(moodForDate.journalContent ?? " ")
       setIsEditing(true)
       api?.scrollTo(1) // Summary is now index 1
     } else {
-      // If no data exists, reset the form
-      setEmotionValue(50)
       setSelectedNews([])
       setJournalContent("")
       setIsEditing(true)
@@ -243,11 +268,11 @@ export function MindsetWidget({ size }: MindsetWidgetProps) {
       try {
         const eventDate = new Date(event.date)
         const compareDate = new Date(date)
-        
+
         // Set hours to start of day for comparison
         eventDate.setHours(0, 0, 0, 0)
         compareDate.setHours(0, 0, 0, 0)
-        
+
         return eventDate.getTime() === compareDate.getTime() && event.lang === locale
       } catch (error) {
         console.error('Error parsing event date:', error)
@@ -256,22 +281,15 @@ export function MindsetWidget({ size }: MindsetWidgetProps) {
     })
   }
 
-  const handleEdit = (section?: 'emotion' | 'journal' | 'news') => {
+  const handleEdit = (section?: 'journal' | 'news') => {
     setIsEditing(true)
-    
-    // Navigate to the appropriate section
-    switch (section) {
-      case 'news':
-        api?.scrollTo(0) // News is now part of journaling
-        break
-      case 'journal':
-        api?.scrollTo(0)
-        break
-      case 'emotion':
-        api?.scrollTo(0)
-        break
-      default:
-        api?.scrollTo(0)
+    api?.scrollTo(0)
+  }
+
+  const handleManualSync = () => {
+    if (sessionId && accounts.length > 0) {
+      hasSyncedRef.current = false
+      performSyncForAllAccounts(sessionId)
     }
   }
 
@@ -282,25 +300,23 @@ export function MindsetWidget({ size }: MindsetWidgetProps) {
   const steps = [
     {
       title: t('mindset.journaling.title'),
-      component: <Journaling 
+      component: <Journaling
         content={journalContent}
         onChange={handleJournalChange}
         onSave={handleSave}
-        emotionValue={emotionValue}
-        onEmotionChange={handleEmotionChange}
         date={selectedDate}
         events={getEventsForDate(selectedDate)}
         selectedNews={selectedNews}
         onNewsSelection={handleNewsSelection}
         trades={trades}
         onApplyTagToAll={handleApplyTagToAll}
+        autoSaveStatus={autoSaveStatus}
       />
     },
     {
       title: t('mindset.title'),
       component: <MindsetSummary
         date={selectedDate}
-        emotionValue={emotionValue}
         selectedNews={selectedNews}
         journalContent={journalContent}
         onEdit={handleEdit}
@@ -310,7 +326,7 @@ export function MindsetWidget({ size }: MindsetWidgetProps) {
 
   return (
     <Card className="flex flex-col p-0 h-full w-full">
-      <CardHeader 
+      <CardHeader
         className={cn(
           "flex flex-row items-center justify-between space-y-0 border-b shrink-0",
           size === 'small' ? "p-2 h-10" : "p-3 sm:p-4 h-14"
@@ -318,7 +334,7 @@ export function MindsetWidget({ size }: MindsetWidgetProps) {
       >
         <div className="flex items-center justify-between w-full">
           <div className="flex items-center gap-1.5">
-            <CardTitle 
+            <CardTitle
               className={cn(
                 "line-clamp-1",
                 size === 'small' ? "text-sm" : "text-base"
@@ -339,6 +355,34 @@ export function MindsetWidget({ size }: MindsetWidgetProps) {
                 </TooltipContent>
               </UITooltip>
             </TooltipProvider>
+            {/* Firstrade sync indicator */}
+            {accounts.length > 0 && (
+              <TooltipProvider>
+                <UITooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      onClick={handleManualSync}
+                      disabled={isAutoSyncing || !sessionId}
+                    >
+                      {isAutoSyncing ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin text-yellow-500" />
+                      ) : (
+                        <RefreshCw className={cn(
+                          "h-3.5 w-3.5",
+                          sessionId ? "text-yellow-500" : "text-muted-foreground"
+                        )} />
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">
+                    <p>{isAutoSyncing ? 'Syncing Firstrade...' : sessionId ? 'Sync Firstrade' : 'No active Firstrade session'}</p>
+                  </TooltipContent>
+                </UITooltip>
+              </TooltipProvider>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-1.5">
@@ -379,20 +423,20 @@ export function MindsetWidget({ size }: MindsetWidgetProps) {
       </CardHeader>
       <CardContent className="flex-1 overflow-hidden p-0 flex flex-row relative">
         {/* Timeline with animation */}
-        <div 
+        <div
           className={cn(
             "relative transition-all duration-300 ease-out-quart",
             isTimelineVisible ? "w-auto" : "w-0 overflow-hidden"
           )}
         >
-          <Timeline 
+          <Timeline
             className="shrink-0"
             selectedDate={selectedDate}
             onSelectDate={handleDateSelect}
             moodHistory={moods}
             onDeleteEntry={handleDeleteEntry}
           />
-          
+
           {/* Hide/Show Button - positioned at right edge of timeline */}
           <div className="absolute right-0 top-1/2 -translate-y-1/2 z-10">
             <TooltipProvider>
@@ -418,7 +462,7 @@ export function MindsetWidget({ size }: MindsetWidgetProps) {
             </TooltipProvider>
           </div>
         </div>
-        
+
         {/* Show Button when timeline is collapsed */}
         {!isTimelineVisible && (
           <div className="absolute left-0 top-1/2 -translate-y-1/2 z-10">
@@ -468,4 +512,4 @@ export function MindsetWidget({ size }: MindsetWidgetProps) {
       </CardContent>
     </Card>
   )
-} 
+}

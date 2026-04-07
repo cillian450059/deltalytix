@@ -17,14 +17,14 @@ import { WeeklyModal } from "./weekly-modal"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { HourlyFinancialTimeline } from "../mindset/hourly-financial-timeline"
 import { ImportanceFilter } from "@/app/[locale]/dashboard/components/importance-filter"
-import { CountryFilter } from "@/components/country-filter"
+// CountryFilter removed from calendar UI
 import { useNewsFilterStore } from "@/store/filters/news-filter-store"
 import { useCalendarViewStore } from "@/store/widgets/calendar-view"
 import WeeklyCalendarPnl from "./weekly-calendar"
 import { CalendarData } from "@/app/[locale]/dashboard/types/calendar"
 import { useFinancialEventsStore } from "@/store/widgets/financial-events-store"
 import { useUserStore } from "@/store/user-store"
-import { Account } from "@/context/data-provider"
+import { Account, useDataSafe } from "@/context/data-provider"
 import { HIDDEN_GROUP_NAME } from "../filters/account-group-board"
 
 
@@ -55,15 +55,30 @@ function getCalendarDays(monthStart: Date, monthEnd: Date, weekStartsOnMonday: b
   const endDate = endOfWeek(monthEnd, { weekStartsOn })
   const days = eachDayOfInterval({ start: startDate, end: endDate })
 
-  if (days.length === 42) return days
+  // 5 complete rows (35 days) — perfect, no padding needed
+  if (days.length <= 35) {
+    if (days.length < 35) {
+      const lastDay = days[days.length - 1]
+      const additionalDays = eachDayOfInterval({
+        start: addDays(lastDay, 1),
+        end: addDays(startDate, 34)
+      })
+      return [...days, ...additionalDays].slice(0, 35)
+    }
+    return days
+  }
 
-  const lastDay = days[days.length - 1]
-  const additionalDays = eachDayOfInterval({
-    start: addDays(lastDay, 1),
-    end: addDays(startDate, 41)
-  })
+  // More than 35 days — need 6 rows, pad to 42
+  if (days.length < 42) {
+    const lastDay = days[days.length - 1]
+    const additionalDays = eachDayOfInterval({
+      start: addDays(lastDay, 1),
+      end: addDays(startDate, 41)
+    })
+    return [...days, ...additionalDays].slice(0, 42)
+  }
 
-  return [...days, ...additionalDays].slice(0, 42)
+  return days
 }
 
 const formatCurrency = (value: number, options?: { minimumFractionDigits?: number; maximumFractionDigits?: number }) => {
@@ -302,6 +317,8 @@ export default function CalendarPnl({ calendarData, hideFiltersOnMobile = false 
   const dateLocale = locale === 'fr' ? fr : enUS
   const weekStartsOnMonday = locale === 'fr'
   const WEEKDAYS = weekStartsOnMonday ? WEEKDAYS_MONDAY_START : WEEKDAYS_SUNDAY_START
+  const dataCtx = useDataSafe()
+  const setDateRange = dataCtx?.setDateRange ?? null
   const [currentDate, setCurrentDate] = useState(new Date())
   const [isLoading, setIsLoading] = useState(false)
   const [monthEvents, setMonthEvents] = useState<FinancialEvent[]>([])
@@ -313,10 +330,11 @@ export default function CalendarPnl({ calendarData, hideFiltersOnMobile = false 
     monthEnd: endOfMonth(currentDate)
   }), [currentDate])
 
-  // Update calendarDays when currentDate changes
+  // Update calendarDays and sync global dateRange when currentDate changes
   useEffect(() => {
     setCalendarDays(getCalendarDays(monthStart, monthEnd, weekStartsOnMonday))
-  }, [currentDate, monthStart, monthEnd, weekStartsOnMonday])
+    setDateRange?.({ from: monthStart, to: monthEnd })
+  }, [currentDate, monthStart, monthEnd, weekStartsOnMonday, setDateRange])
 
   // Use the calendar view store
   const {
@@ -348,12 +366,16 @@ export default function CalendarPnl({ calendarData, hideFiltersOnMobile = false 
   }, [currentDate, userFinancialEvents, locale])
 
   const handlePrevMonth = React.useCallback(() => {
-    setCurrentDate(subMonths(currentDate, 1))
-  }, [currentDate])
+    const newDate = subMonths(currentDate, 1)
+    setCurrentDate(newDate)
+    setDateRange?.({ from: startOfMonth(newDate), to: endOfMonth(newDate) })
+  }, [currentDate, setDateRange])
 
   const handleNextMonth = React.useCallback(() => {
-    setCurrentDate(addMonths(currentDate, 1))
-  }, [currentDate])
+    const newDate = addMonths(currentDate, 1)
+    setCurrentDate(newDate)
+    setDateRange?.({ from: startOfMonth(newDate), to: endOfMonth(newDate) })
+  }, [currentDate, setDateRange])
 
   // Memoize countries array
   const countries = useMemo(() => {
@@ -525,23 +547,6 @@ export default function CalendarPnl({ calendarData, hideFiltersOnMobile = false 
           </div>
         </div>
         <div className="flex items-center gap-4">
-          {/* Impact Level Filter */}
-          <div className={cn("flex items-center gap-2", hideFiltersOnMobile && "max-sm:hidden")}>
-            <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">
-              {t('calendar.importanceFilter.title')}
-            </span>
-            <ImportanceFilter
-              value={impactLevels}
-              onValueChange={setImpactLevels}
-              className="h-8"
-            />
-          </div>
-          <CountryFilter
-            countries={countries}
-            value={selectedCountries}
-            onValueChange={setSelectedCountries}
-            className={cn("h-8", hideFiltersOnMobile && "max-sm:hidden")}
-          />
           <div className="flex items-center gap-1.5">
             <Button
               variant="outline"
@@ -604,7 +609,7 @@ export default function CalendarPnl({ calendarData, hideFiltersOnMobile = false 
                         !isCurrentMonth && "",
                         isToday(date) && "ring-blue-500 bg-blue-500/5 z-10",
                         index === 0 && "rounded-tl-lg",
-                        index === 35 && "rounded-bl-lg",
+                        index === calendarDays.length - 7 && "rounded-bl-lg",
                       )}
                       onClick={() => {
                         setSelectedDate(date)
@@ -623,10 +628,10 @@ export default function CalendarPnl({ calendarData, hideFiltersOnMobile = false 
                           {dateRenewals.length > 0 && <RenewalBadge renewals={dateRenewals} />}
                         </div>
                       </div>
-                      <div className="flex-1 flex flex-col justify-end gap-0.5">
+                      <div className="flex-1 flex items-center justify-center">
                         {dayData ? (
                           <div className={cn(
-                            "text-[9px] sm:text-[11px] font-semibold truncate text-center",
+                            "text-[10px] sm:text-[13px] font-bold truncate text-center font-mono",
                             dayData.pnl >= 0
                               ? "text-green-600 dark:text-green-400"
                               : "text-red-600 dark:text-red-400",
@@ -634,36 +639,7 @@ export default function CalendarPnl({ calendarData, hideFiltersOnMobile = false 
                           )}>
                             {formatCurrency(dayData.pnl)}
                           </div>
-                        ) : (
-                          <div className={cn(
-                            "text-[9px] sm:text-[11px] font-semibold invisible text-center",
-                            !isCurrentMonth && "opacity-50"
-                          )}>$0</div>
-                        )}
-                        <div className={cn(
-                          "text-[7px] sm:text-[9px] text-muted-foreground truncate text-center",
-                          !isCurrentMonth && "opacity-50"
-                        )}>
-                          {dayData
-                            ? `${dayData.tradeNumber} ${dayData.tradeNumber > 1 ? t('calendar.trades') : t('calendar.trade')}`
-                            : t('calendar.noTrades')}
-                        </div>
-                        {dayData && (
-                          <>
-                            <div className={cn(
-                              "text-[7px] sm:text-[9px] text-green-600 dark:text-green-400 truncate text-center",
-                              !isCurrentMonth && "opacity-50"
-                            )}>
-                              {t('calendar.maxProfit')}: {formatCurrency(maxProfit)}
-                            </div>
-                            <div className={cn(
-                              "text-[7px] sm:text-[9px] text-red-600 dark:text-red-400 truncate text-center",
-                              !isCurrentMonth && "opacity-50"
-                            )}>
-                              {t('calendar.maxDD')}: -{formatCurrency(maxDrawdown)}
-                            </div>
-                          </>
-                        )}
+                        ) : null}
                       </div>
                     </div>
                     {isLastDayOfWeek && (() => {
@@ -674,7 +650,7 @@ export default function CalendarPnl({ calendarData, hideFiltersOnMobile = false 
                             "h-full flex items-center justify-center rounded-none cursor-pointer",
                             "ring-1 ring-border hover:ring-primary hover:z-10",
                             index === 6 && "rounded-tr-lg",
-                            index === 41 && "rounded-br-lg"
+                            index === calendarDays.length - 1 && "rounded-br-lg"
                           )}
                           onClick={() => setSelectedWeekDate(date)}
                         >

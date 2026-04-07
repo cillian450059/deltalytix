@@ -189,7 +189,6 @@ export function TiptapEditor({
         const hashHex = hashArray
           .map((b) => b.toString(16).padStart(2, "0"))
           .join("");
-        console.error(hashHex);
 
         // If we've already uploaded this exact image in-session, reuse the URL
         const cached = imageHashCacheRef.current.get(hashHex);

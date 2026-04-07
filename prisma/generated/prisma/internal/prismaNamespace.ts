@@ -80,12 +80,12 @@ export type PrismaVersion = {
 }
 
 /**
- * Prisma Client JS version: 7.3.0
- * Query Engine version: 9d6ad21cbbceab97458517b147a6a09ff43aa735
+ * Prisma Client JS version: 7.5.0
+ * Query Engine version: 280c870be64f457428992c43c1f6d557fab6e29e
  */
 export const prismaVersion: PrismaVersion = {
-  client: "7.3.0",
-  engine: "9d6ad21cbbceab97458517b147a6a09ff43aa735"
+  client: "7.5.0",
+  engine: "280c870be64f457428992c43c1f6d557fab6e29e"
 }
 
 /**
@@ -400,6 +400,7 @@ export const ModelName = {
   BusinessInvitation: 'BusinessInvitation',
   Group: 'Group',
   Account: 'Account',
+  DailyEquity: 'DailyEquity',
   Payout: 'Payout',
   DashboardLayout: 'DashboardLayout',
   SubscriptionFeedback: 'SubscriptionFeedback',
@@ -430,7 +431,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "trade" | "tickDetails" | "subscription" | "businessSubscription" | "teamSubscription" | "notification" | "user" | "synchronization" | "team" | "teamInvitation" | "teamManager" | "business" | "businessManager" | "businessInvitation" | "group" | "account" | "payout" | "dashboardLayout" | "subscriptionFeedback" | "mood" | "shared" | "referral" | "financialEvent" | "tag" | "newsletter" | "post" | "comment" | "vote" | "order" | "tradeAnalytics" | "historicalData"
+    modelProps: "trade" | "tickDetails" | "subscription" | "businessSubscription" | "teamSubscription" | "notification" | "user" | "synchronization" | "team" | "teamInvitation" | "teamManager" | "business" | "businessManager" | "businessInvitation" | "group" | "account" | "dailyEquity" | "payout" | "dashboardLayout" | "subscriptionFeedback" | "mood" | "shared" | "referral" | "financialEvent" | "tag" | "newsletter" | "post" | "comment" | "vote" | "order" | "tradeAnalytics" | "historicalData"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1615,6 +1616,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.AccountCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.AccountCountAggregateOutputType> | number
+        }
+      }
+    }
+    DailyEquity: {
+      payload: Prisma.$DailyEquityPayload<ExtArgs>
+      fields: Prisma.DailyEquityFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.DailyEquityFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DailyEquityPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.DailyEquityFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DailyEquityPayload>
+        }
+        findFirst: {
+          args: Prisma.DailyEquityFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DailyEquityPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.DailyEquityFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DailyEquityPayload>
+        }
+        findMany: {
+          args: Prisma.DailyEquityFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DailyEquityPayload>[]
+        }
+        create: {
+          args: Prisma.DailyEquityCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DailyEquityPayload>
+        }
+        createMany: {
+          args: Prisma.DailyEquityCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.DailyEquityCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DailyEquityPayload>[]
+        }
+        delete: {
+          args: Prisma.DailyEquityDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DailyEquityPayload>
+        }
+        update: {
+          args: Prisma.DailyEquityUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DailyEquityPayload>
+        }
+        deleteMany: {
+          args: Prisma.DailyEquityDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.DailyEquityUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.DailyEquityUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DailyEquityPayload>[]
+        }
+        upsert: {
+          args: Prisma.DailyEquityUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DailyEquityPayload>
+        }
+        aggregate: {
+          args: Prisma.DailyEquityAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateDailyEquity>
+        }
+        groupBy: {
+          args: Prisma.DailyEquityGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.DailyEquityGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.DailyEquityCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.DailyEquityCountAggregateOutputType> | number
         }
       }
     }
@@ -2890,7 +2965,8 @@ export const SynchronizationScalarFieldEnum = {
   token: 'token',
   tokenExpiresAt: 'tokenExpiresAt',
   dailySyncTime: 'dailySyncTime',
-  includedFeeTypes: 'includedFeeTypes'
+  includedFeeTypes: 'includedFeeTypes',
+  needsReauth: 'needsReauth'
 } as const
 
 export type SynchronizationScalarFieldEnum = (typeof SynchronizationScalarFieldEnum)[keyof typeof SynchronizationScalarFieldEnum]
@@ -3032,6 +3108,19 @@ export const AccountScalarFieldEnum = {
 } as const
 
 export type AccountScalarFieldEnum = (typeof AccountScalarFieldEnum)[keyof typeof AccountScalarFieldEnum]
+
+
+export const DailyEquityScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  accountNumber: 'accountNumber',
+  date: 'date',
+  equity: 'equity',
+  cash: 'cash',
+  createdAt: 'createdAt'
+} as const
+
+export type DailyEquityScalarFieldEnum = (typeof DailyEquityScalarFieldEnum)[keyof typeof DailyEquityScalarFieldEnum]
 
 
 export const PayoutScalarFieldEnum = {
@@ -3563,6 +3652,7 @@ export type GlobalOmitConfig = {
   businessInvitation?: Prisma.BusinessInvitationOmit
   group?: Prisma.GroupOmit
   account?: Prisma.AccountOmit
+  dailyEquity?: Prisma.DailyEquityOmit
   payout?: Prisma.PayoutOmit
   dashboardLayout?: Prisma.DashboardLayoutOmit
   subscriptionFeedback?: Prisma.SubscriptionFeedbackOmit

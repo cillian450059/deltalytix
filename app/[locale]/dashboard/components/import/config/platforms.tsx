@@ -3,6 +3,7 @@ import { Trade } from '@/prisma/generated/prisma/browser'
 import { ThorSync } from '../thor/thor-sync'
 import { TradovateSync } from '../tradovate/sync/tradovate-sync'
 import { DxFeedSync } from '../dxfeed/sync/dxfeed-sync'
+import { FirstradeSync } from '../firstrade/sync/firstrade-sync'
 import { ImportType } from '../import-type-selection'
 import { RithmicSyncWrapper } from '../rithmic/sync/rithmic-sync-connection'
 import type { ComponentType } from 'react'
@@ -25,6 +26,7 @@ import AtasFileUpload from '../atas/atas-file-upload'
 import AtasProcessor from '../atas/atas-processor'
 import FtmoProcessor from '../ftmo/ftmo-processor'
 import ManualProcessor from '../manual/manual-processor'
+import FirstradeProcessor from '../firstrade/firstrade-processor'
 import { Step } from '../import-button'
 import { Sparkles, PenTool } from 'lucide-react'
 import { useTheme } from '@/context/theme-provider'
@@ -156,6 +158,8 @@ type StepComponent =
   | typeof AtasProcessor
   | typeof FtmoProcessor
   | typeof ManualProcessor
+  | typeof FirstradeProcessor
+  | typeof FirstradeSync
 
 
 export interface PlatformProcessorProps {
@@ -331,6 +335,43 @@ export const platforms: PlatformConfig[] = [
         title: 'import.steps.reviewTrades',
         description: 'import.steps.reviewTradesDescription',
         component: FormatPreview,
+        isLastStep: true
+      }
+    ]
+  },
+  {
+    platformName: 'firstrade',
+    type: 'firstrade',
+    name: 'Firstrade (CSV)',
+    description: 'Import trades from Firstrade transaction history CSV',
+    category: 'Platform CSV Import',
+    videoUrl: '',
+    details: 'Export your transaction history from Firstrade and import it here. Trades are matched using FIFO pairing of buy/sell orders.',
+    logo: {
+      path: '/logos/firstrade.png',
+      alt: 'Firstrade Logo'
+    },
+    skipHeaderSelection: true,
+    processFile: processStandardCsv,
+    processorComponent: FirstradeProcessor,
+    steps: [
+      {
+        id: 'select-import-type',
+        title: 'import.steps.selectPlatform',
+        description: 'import.steps.selectPlatformDescription',
+        component: ImportTypeSelection
+      },
+      {
+        id: 'upload-file',
+        title: 'import.steps.uploadFile',
+        description: 'import.steps.uploadFileDescription',
+        component: FileUpload
+      },
+      {
+        id: 'preview-trades',
+        title: 'import.steps.processTrades',
+        description: 'import.steps.processTradesDescription',
+        component: FirstradeProcessor,
         isLastStep: true
       }
     ]
@@ -828,6 +869,35 @@ export const platforms: PlatformConfig[] = [
         title: 'import.steps.processTrades',
         description: 'import.steps.processTradesDescription',
         component: FtmoProcessor,
+        isLastStep: true
+      }
+    ]
+  },
+  {
+    platformName: 'firstrade-sync',
+    type: 'firstrade-sync',
+    name: 'Firstrade Sync',
+    description: 'Auto-sync trades from your Firstrade account',
+    category: 'Direct Account Sync',
+    videoUrl: '',
+    details: 'Connect your Firstrade account to automatically import trades. Login with your credentials, complete 2FA, and sync your trade history.',
+    logo: {
+      path: '/logos/firstrade.png',
+      alt: 'Firstrade Logo'
+    },
+    customComponent: FirstradeSync as any,
+    steps: [
+      {
+        id: 'select-import-type',
+        title: 'import.steps.selectPlatform',
+        description: 'import.steps.selectPlatformDescription',
+        component: ImportTypeSelection
+      },
+      {
+        id: 'complete',
+        title: 'import.steps.connectAccount',
+        description: 'import.steps.connectAccountDescription',
+        component: FirstradeSync as any,
         isLastStep: true
       }
     ]

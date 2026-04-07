@@ -78,7 +78,7 @@ const formatCurrency = (value: number) =>
 function getChartColorByIndex(index: number): string {
   const paletteVars = [
     "hsl(var(--chart-loss))",
-    "hsl(var(--chart-2))",
+    "#eab308",
     "hsl(var(--chart-win))",
     "hsl(var(--chart-4))",
     "hsl(var(--chart-5))",
@@ -123,11 +123,11 @@ const getPayoutColors = (status: string) => {
       return { fg: "hsl(var(--chart-4))", bg: "hsl(var(--chart-4) / 0.15)" };
     case "REFUSED":
       return {
-        fg: "hsl(var(--destructive))",
-        bg: "hsl(var(--destructive) / 0.15)",
+        fg: "hsl(var(--chart-loss))",
+        bg: "hsl(var(--chart-loss) / 0.15)",
       };
     case "PAID":
-      return { fg: "hsl(var(--success))", bg: "hsl(var(--success) / 0.15)" };
+      return { fg: "#eab308", bg: "rgba(234, 179, 8, 0.15)" };
     default:
       return {
         fg: "hsl(var(--muted-foreground))",
@@ -161,7 +161,7 @@ const renderDot = (props: any) => {
           cx={cx}
           cy={cy}
           r={5}
-          fill="#ff6b6b"
+          fill="hsl(var(--chart-loss))"
           stroke="white"
           strokeWidth={2}
         />
@@ -200,7 +200,7 @@ const renderDot = (props: any) => {
           cx={cx}
           cy={cy}
           r={5}
-          fill="hsl(var(--destructive))"
+          fill="hsl(var(--chart-loss))"
           stroke="white"
           strokeWidth={2}
         />
@@ -553,7 +553,7 @@ const AccountsLegend = React.memo(
                         {hasReset && (
                           <span
                             className="text-xs leading-tight"
-                            style={{ color: "hsl(var(--destructive))" }}
+                            style={{ color: "hsl(var(--chart-loss))" }}
                           >
                             {t("equity.legend.reset")}
                           </span>
@@ -849,8 +849,8 @@ export default function EquityChart({ size = "medium" }: EquityChartProps) {
           strokeWidth={2}
           dot={renderDot}
           isAnimationActive={false}
-          activeDot={{ r: 3, style: { fill: "hsl(var(--chart-2))" } }}
-          stroke="hsl(var(--chart-2))"
+          activeDot={{ r: 3, style: { fill: "#eab308" } }}
+          stroke="#eab308"
           connectNulls={false}
         />
       );
@@ -1021,6 +1021,31 @@ export default function EquityChart({ size = "medium" }: EquityChartProps) {
                       )}
                     />
                     {chartLines}
+                    {/* Actual portfolio value from Firstrade daily snapshots */}
+                    <Line
+                      type="monotone"
+                      dataKey="actualEquity"
+                      strokeWidth={1.5}
+                      stroke="hsl(var(--chart-loss))"
+                      strokeDasharray="4 3"
+                      dot={(props: any) => {
+                        if (props.payload?.actualEquity == null) return <g key={props.key} />
+                        return (
+                          <circle
+                            key={props.key}
+                            cx={props.cx}
+                            cy={props.cy}
+                            r={3}
+                            fill="hsl(var(--chart-loss))"
+                            stroke="white"
+                            strokeWidth={1}
+                          />
+                        )
+                      }}
+                      isAnimationActive={false}
+                      connectNulls={false}
+                      name="Actual Value"
+                    />
                   </LineChart>
                 </ResponsiveContainer>
               </ChartContainer>

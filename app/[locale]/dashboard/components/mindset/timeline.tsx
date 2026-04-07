@@ -29,7 +29,7 @@ import { toast } from "sonner"
 interface TimelineProps {
   onSelectDate: (date: Date) => void
   selectedDate: Date
-  moodHistory: Array<{ day: Date; emotionValue: number }>
+  moodHistory: Array<{ day: Date; emotionValue?: number }>
   className?: string
   onDeleteEntry?: (date: Date) => Promise<void>
 }
@@ -41,14 +41,6 @@ export function Timeline({ onSelectDate, selectedDate, moodHistory, className, o
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [entryToDelete, setEntryToDelete] = useState<Date | null>(null)
   const [datePickerOpen, setDatePickerOpen] = useState(false)
-
-  const getEmotionColor = (value: number) => {
-    if (value < 20) return 'bg-red-500'
-    if (value < 40) return 'bg-orange-500'
-    if (value < 60) return 'bg-yellow-500'
-    if (value < 80) return 'bg-green-500'
-    return 'bg-emerald-500'
-  }
 
   const handleDeleteClick = (e: React.MouseEvent, date: Date) => {
     e.stopPropagation()
@@ -157,10 +149,7 @@ export function Timeline({ onSelectDate, selectedDate, moodHistory, className, o
                       onClick={() => onSelectDate(moodDate)}
                     >
                       <div className="flex flex-col items-center justify-center gap-1 min-w-10">
-                        <div className={cn(
-                          "w-2 h-2 rounded-full transition-colors",
-                          getEmotionColor(mood.emotionValue)
-                        )} />
+                        <div className="w-2 h-2 rounded-full bg-yellow-500" />
                       </div>
                       <div className="flex-1 text-left min-w-0 flex items-center">
                         <p className="text-sm font-medium truncate">

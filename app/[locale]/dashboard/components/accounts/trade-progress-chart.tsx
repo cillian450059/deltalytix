@@ -56,7 +56,7 @@ export function TradeProgressChart({
     },
     drawdown: {
       label: t('propFirm.chart.drawdownLevel'),
-      color: "#dc2626",
+      color: "hsl(var(--chart-loss))",
     },
     target: {
       label: t('propFirm.chart.profitTarget'),
@@ -175,7 +175,7 @@ export function TradeProgressChart({
           cx={cx}
           cy={cy}
           r={5}
-          fill="#ff6b6b"
+          fill="hsl(var(--chart-loss))"
           stroke="white"
           strokeWidth={2}
         />
@@ -248,7 +248,7 @@ export function TradeProgressChart({
                           {!data.isPayout && !data.isReset && (
                             <span className={cn(
                               "text-sm",
-                              data.pnl >= 0 ? "text-green-600" : "text-red-600"
+                              data.pnl >= 0 ? "text-yellow-600" : "text-red-600"
                             )}>
                               {data.pnl >= 0 ? '+' : ''}{data.pnl.toLocaleString()}
                             </span>
@@ -270,7 +270,7 @@ export function TradeProgressChart({
                               "text-gray-500": data.payoutStatus === 'PENDING',
                               "text-orange-500": data.payoutStatus === 'VALIDATED',
                               "text-red-500": data.payoutStatus === 'REFUSED',
-                              "text-green-500": data.payoutStatus === 'PAID',
+                              "text-yellow-500": data.payoutStatus === 'PAID',
                             }
                           )}>
                             <span>${data.payoutAmount.toLocaleString()}</span>

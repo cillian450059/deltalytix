@@ -124,81 +124,6 @@ export default async function RootLayout({
         <meta name="googlebot" content="notranslate" />
         <meta name="googlebot-news" content="notranslate" />
 
-        {/* Apply stored theme before paint to avoid blank flash */}
-        <Script id="init-theme" strategy="beforeInteractive">
-          {`
-            (function() {
-              try {
-                var root = document.documentElement;
-                var savedTheme = localStorage.getItem('theme');
-                var resolvedTheme = savedTheme === 'dark'
-                  ? 'dark'
-                  : savedTheme === 'light'
-                    ? 'light'
-                    : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-
-                root.classList.remove('light', 'dark');
-                root.classList.add(resolvedTheme);
-
-                var savedIntensity = localStorage.getItem('intensity');
-                var intensity = savedIntensity ? Number(savedIntensity) : 100;
-                root.style.setProperty('--theme-intensity', intensity + '%');
-              } catch (e) {
-                // Fail silently to avoid blocking render
-              }
-            })();
-          `}
-        </Script>
-
-        {/* Prevent Google Translate DOM manipulation */}
-        <Script id="prevent-google-translate" strategy="beforeInteractive">
-          {`
-            // Function to prevent Google Translate from modifying the DOM
-            function preventGoogleTranslate() {
-              // Prevent Google Translate from modifying the DOM
-              const observer = new MutationObserver((mutations) => {
-                mutations.forEach((mutation) => {
-                  if (mutation.type === 'childList' && 
-                      mutation.target.classList && 
-                      mutation.target.classList.contains('goog-te-menu-frame')) {
-                    // Prevent Google Translate from modifying our React components
-                    const elements = document.querySelectorAll('[class*="goog-te-"]');
-                    elements.forEach((el) => {
-                      if (el.tagName === 'SPAN' && el.parentElement) {
-                        // Preserve the original text content
-                        const originalText = el.getAttribute('data-original-text') || el.textContent;
-                        el.textContent = originalText;
-                      }
-                    });
-                  }
-                });
-              });
-
-              // Start observing the document with the configured parameters
-              observer.observe(document.body, {
-                childList: true,
-                subtree: true,
-                attributes: true,
-                attributeFilter: ['class']
-              });
-
-              // Prevent Google Translate from initializing
-              if (window.google && window.google.translate) {
-                window.google.translate.TranslateElement = function() {
-                  return {
-                    translate: function() {
-                      return false;
-                    }
-                  };
-                };
-              }
-            }
-
-            // Run the prevention function
-            preventGoogleTranslate();
-          `}
-        </Script>
-
         {/* PostHog Analytics */}
         {/*{process.env.NODE_ENV === "production" && (
           <Script id="posthog-analytics" strategy="afterInteractive">
@@ -286,6 +211,12 @@ export default async function RootLayout({
         </style>
       </head>
       <body className={inter.className}>
+        <Script id="init-theme" strategy="beforeInteractive">
+          {`(function(){try{var r=document.documentElement;var s=localStorage.getItem('theme');var t=s==='dark'?'dark':s==='light'?'light':(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');r.classList.remove('light','dark');r.classList.add(t);var i=localStorage.getItem('intensity');r.style.setProperty('--theme-intensity',(i?Number(i):100)+'%');}catch(e){}})();`}
+        </Script>
+        <Script id="prevent-google-translate" strategy="beforeInteractive">
+          {`(function(){function p(){var o=new MutationObserver(function(m){m.forEach(function(mu){if(mu.type==='childList'&&mu.target.classList&&mu.target.classList.contains('goog-te-menu-frame')){document.querySelectorAll('[class*="goog-te-"]').forEach(function(el){if(el.tagName==='SPAN'&&el.parentElement){el.textContent=el.getAttribute('data-original-text')||el.textContent;}});}});});if(document.body)o.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});if(window.google&&window.google.translate){window.google.translate.TranslateElement=function(){return{translate:function(){return false;}};};}}p();})();`}
+        </Script>
         <ScrollLockFix />
         <SpeedInsights />
         <Analytics />

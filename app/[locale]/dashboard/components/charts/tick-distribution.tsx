@@ -47,7 +47,7 @@ interface TooltipProps {
 const chartConfig = {
   count: {
     label: "Count",
-    color: "hsl(var(--chart-7))",
+    color: "hsl(var(--chart-win))",
   },
 } satisfies ChartConfig;
 

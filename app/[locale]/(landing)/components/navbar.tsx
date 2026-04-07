@@ -169,6 +169,11 @@ export default function Component() {
 
     const [themeOpen, setThemeOpen] = useState(false)
     const [languageOpen, setLanguageOpen] = useState(false)
+    const [mounted, setMounted] = useState(false)
+
+    useEffect(() => {
+        setMounted(true)
+    }, [])
     const changeLocale = useChangeLocale()
     const handleThemeChange = (value: string) => {
         setTheme(value as "light" | "dark" | "system")
@@ -181,15 +186,11 @@ export default function Component() {
     }
 
     const getThemeIcon = () => {
+        if (!mounted) return <Laptop className="h-5 w-5" />;
         if (theme === 'light') return <Sun className="h-5 w-5" />;
         if (theme === 'dark') return <Moon className="h-5 w-5" />;
-        // For 'system' theme, we need to check the actual applied theme
-        if (typeof window !== 'undefined') {
-            const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
-            return isDarkMode ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />;
-        }
-        // Fallback to Laptop icon if we can't determine
-        return <Laptop className="h-5 w-5" />;
+        const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        return isDarkMode ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />;
     };
 
     const links = [

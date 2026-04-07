@@ -43,6 +43,7 @@ export interface ChartDataPoint {
   date: string;
   [key: `equity_${string}`]: number | undefined;
   equity?: number;
+  actualEquity?: number; // Actual portfolio value from Firstrade DailyEquity snapshots
   dailyPnL?: number | undefined;
   dailyCommissions?: number | undefined;
   netPnL?: number | undefined;

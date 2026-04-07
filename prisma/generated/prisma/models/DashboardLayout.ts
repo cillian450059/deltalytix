@@ -1092,6 +1092,11 @@ export type DashboardLayoutFindManyArgs<ExtArgs extends runtime.Types.Extensions
    * Skip the first `n` DashboardLayouts.
    */
   skip?: number
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+   * 
+   * Filter by unique combinations of DashboardLayouts.
+   */
   distinct?: Prisma.DashboardLayoutScalarFieldEnum | Prisma.DashboardLayoutScalarFieldEnum[]
 }
 

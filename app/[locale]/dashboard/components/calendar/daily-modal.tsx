@@ -65,7 +65,7 @@ export function CalendarModal({
   const locale = useCurrentLocale();
   const timezone = useUserStore((state) => state.timezone);
   const dateLocale = locale === "fr" ? fr : enUS;
-  const [activeTab, setActiveTab] = useState("comment");
+  const [activeTab, setActiveTab] = useState("analysis");
   const [formattedDate, setFormattedDate] = useState<string>("");
 
   React.useEffect(() => {
@@ -93,12 +93,12 @@ export function CalendarModal({
           className="grow flex flex-col overflow-hidden"
         >
           <TabsList className="px-6">
-            <TabsTrigger value="comment">
-              {t("calendar.modal.comment")}
-            </TabsTrigger>
-            <TabsTrigger value="table">{t("calendar.modal.table")}</TabsTrigger>
             <TabsTrigger value="analysis">
               {t("calendar.modal.analysis")}
+            </TabsTrigger>
+            <TabsTrigger value="table">{t("calendar.modal.table")}</TabsTrigger>
+            <TabsTrigger value="comment">
+              {t("calendar.modal.comment")}
             </TabsTrigger>
           </TabsList>
           <TabsContent

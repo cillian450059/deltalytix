@@ -163,12 +163,12 @@ export default function FtmoProcessor({ headers, csvData, processedTrades, setPr
                                         <TableCell>{trade.closePrice || '-'}</TableCell>
                                         <TableCell>{trade.entryDate ? new Date(trade.entryDate).toLocaleString() : '-'}</TableCell>
                                         <TableCell>{trade.closeDate ? new Date(trade.closeDate).toLocaleString() : '-'}</TableCell>
-                                        <TableCell className={trade.pnl && trade.pnl >= 0 ? 'text-green-600' : 'text-red-600'}>
+                                        <TableCell className={trade.pnl && trade.pnl >= 0 ? 'text-yellow-600' : 'text-red-600'}>
                                             {trade.pnl?.toFixed(2)}
                                         </TableCell>
                                         <TableCell>{formatDuration(trade.timeInPosition || 0)}</TableCell>
                                         <TableCell>${(trade as any).commissionOnly?.toFixed(2) || '0.00'}</TableCell>
-                                        <TableCell className={(trade as any).swap >= 0 ? 'text-green-600' : 'text-red-600'}>
+                                        <TableCell className={(trade as any).swap >= 0 ? 'text-yellow-600' : 'text-red-600'}>
                                             ${(trade as any).swap?.toFixed(2) || '0.00'}
                                         </TableCell>
                                         <TableCell className="font-semibold">${trade.commission?.toFixed(2) || '0.00'}</TableCell>
@@ -180,7 +180,7 @@ export default function FtmoProcessor({ headers, csvData, processedTrades, setPr
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 px-2 py-4">
                         <div>
                             <h3 className="text-lg font-semibold mb-2">Total PnL</h3>
-                            <p className={`text-xl font-bold ${totalPnL >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            <p className={`text-xl font-bold ${totalPnL >= 0 ? 'text-yellow-600' : 'text-red-600'}`}>
                                 ${totalPnL.toFixed(2)}
                             </p>
                         </div>

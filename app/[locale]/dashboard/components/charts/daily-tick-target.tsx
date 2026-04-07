@@ -317,7 +317,7 @@ export default function DailyTickTargetChart({ size = 'medium' }: DailyTickTarge
               </span>
               <span className={cn(
                 "font-bold",
-                isOverTarget ? "text-green-500" : "text-foreground",
+                isOverTarget ? "text-yellow-500" : "text-foreground",
                 size === 'small' ? "text-xl" : "text-3xl"
               )}>
                 {Math.round(convertToDisplayValue(progress.current))}
@@ -352,8 +352,8 @@ export default function DailyTickTargetChart({ size = 'medium' }: DailyTickTarge
           
           {/* Breakdown Display */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="flex items-center gap-2 bg-green-50 dark:bg-green-900/20 p-2 rounded-md">
-              <ArrowUp className="h-4 w-4 text-green-500" />
+            <div className="flex items-center gap-2 bg-yellow-50 dark:bg-yellow-900/20 p-2 rounded-md">
+              <ArrowUp className="h-4 w-4 text-yellow-500" />
               <div className="flex flex-col gap-0.5">
                 <span className={cn(
                   "text-xs text-muted-foreground",
@@ -362,7 +362,7 @@ export default function DailyTickTargetChart({ size = 'medium' }: DailyTickTarge
                   {t('widgets.dailyTickTarget.positive')}
                 </span>
                 <span className={cn(
-                  "font-semibold text-green-500",
+                  "font-semibold text-yellow-500",
                   size === 'small' ? "text-sm" : "text-base"
                 )}>
                   {Math.round(convertToDisplayValue(progress.positive))}
@@ -401,7 +401,7 @@ export default function DailyTickTargetChart({ size = 'medium' }: DailyTickTarge
                 </span>
                 <span className={cn(
                   "font-medium",
-                  isOverTarget ? "text-green-500" : "text-foreground",
+                  isOverTarget ? "text-yellow-500" : "text-foreground",
                   size === 'small' ? "text-2xs" : "text-xs"
                 )}>
                   {Math.round(progress.percentage)}%
@@ -411,7 +411,7 @@ export default function DailyTickTargetChart({ size = 'medium' }: DailyTickTarge
                 value={progress.percentage} 
                 className={cn(
                   "h-2",
-                  isOverTarget ? "bg-green-100 dark:bg-green-900/20" : ""
+                  isOverTarget ? "bg-yellow-100 dark:bg-yellow-900/20" : ""
                 )}
               />
             </div>

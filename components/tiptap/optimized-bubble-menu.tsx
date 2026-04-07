@@ -6,6 +6,7 @@ import { Bold, Italic, UnderlineIcon, Strikethrough, Highlighter, Loader2, Spark
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { BubbleMenu } from "@tiptap/react/menus";
+import { NodeSelection } from "@tiptap/pm/state";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 // Optimized BubbleMenu component using useEditorState
@@ -25,6 +26,11 @@ export function OptimizedBubbleMenu({
   const editorState = useEditorState({
     editor,
     selector: (ctx) => {
+      const { selection } = ctx.editor.state;
+      const isImageNode =
+        selection instanceof NodeSelection &&
+        (selection.node.type.name === "image" ||
+          selection.node.type.name === "resizableImage");
       return {
         isBold: ctx.editor.isActive("bold") ?? false,
         isItalic: ctx.editor.isActive("italic") ?? false,
@@ -42,6 +48,7 @@ export function OptimizedBubbleMenu({
         canDeleteColumn: ctx.editor.can().deleteColumn() ?? false,
         canDeleteRow: ctx.editor.can().deleteRow() ?? false,
         canDeleteTable: ctx.editor.can().deleteTable() ?? false,
+        isImage: isImageNode,
       };
     },
   });
@@ -51,213 +58,242 @@ export function OptimizedBubbleMenu({
   return (
     <BubbleMenu
       editor={editor}
+      shouldShow={({ state }) => {
+        // Show for image node selections
+        if (state.selection instanceof NodeSelection) {
+          const node = (state.selection as NodeSelection).node;
+          if (node.type.name === "image" || node.type.name === "resizableImage") {
+            return true;
+          }
+        }
+        // Show for non-empty text selections
+        const { from, to } = state.selection;
+        return from !== to;
+      }}
       className="flex items-center flex-wrap gap-1 p-2 bg-background border rounded-lg shadow-lg max-w-[90vw] overflow-visible"
     >
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => editor.chain().focus().toggleBold().run()}
-        disabled={!editorState.canBold}
-        className={cn(editorState.isBold && "bg-muted")}
-        title="Bold"
-      >
-        <Bold className="h-4 w-4" />
-      </Button>
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => editor.chain().focus().toggleItalic().run()}
-        disabled={!editorState.canItalic}
-        className={cn(editorState.isItalic && "bg-muted")}
-        title="Italic"
-      >
-        <Italic className="h-4 w-4" />
-      </Button>
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => editor.chain().focus().toggleUnderline().run()}
-        disabled={!editorState.canUnderline}
-        className={cn(editorState.isUnderline && "bg-muted")}
-        title="Underline"
-      >
-        <UnderlineIcon className="h-4 w-4" />
-      </Button>
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => editor.chain().focus().toggleStrike().run()}
-        disabled={!editorState.canStrike}
-        className={cn(editorState.isStrike && "bg-muted")}
-        title="Strikethrough"
-      >
-        <Strikethrough className="h-4 w-4" />
-      </Button>
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => editor.chain().focus().toggleHighlight().run()}
-        disabled={!editorState.canHighlight}
-        className={cn(editorState.isHighlight && "bg-muted")}
-        title="Highlight"
-      >
-        <Highlighter className="h-4 w-4" />
-      </Button>
-
-      {/* Table Menu - Show when inside a table */}
-      {editorState.isTable && (
+      {editorState.isImage ? (
+        /* Image selected: show only delete button */
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => editor.chain().focus().deleteSelection().run()}
+          className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 gap-1.5"
+          title="Delete image"
+        >
+          <Trash2 className="h-4 w-4" />
+          Delete image
+        </Button>
+      ) : (
+        /* Text selected: show formatting toolbar */
         <>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => editor.chain().focus().toggleBold().run()}
+            disabled={!editorState.canBold}
+            className={cn(editorState.isBold && "bg-muted")}
+            title="Bold"
+          >
+            <Bold className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => editor.chain().focus().toggleItalic().run()}
+            disabled={!editorState.canItalic}
+            className={cn(editorState.isItalic && "bg-muted")}
+            title="Italic"
+          >
+            <Italic className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => editor.chain().focus().toggleUnderline().run()}
+            disabled={!editorState.canUnderline}
+            className={cn(editorState.isUnderline && "bg-muted")}
+            title="Underline"
+          >
+            <UnderlineIcon className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => editor.chain().focus().toggleStrike().run()}
+            disabled={!editorState.canStrike}
+            className={cn(editorState.isStrike && "bg-muted")}
+            title="Strikethrough"
+          >
+            <Strikethrough className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => editor.chain().focus().toggleHighlight().run()}
+            disabled={!editorState.canHighlight}
+            className={cn(editorState.isHighlight && "bg-muted")}
+            title="Highlight"
+          >
+            <Highlighter className="h-4 w-4" />
+          </Button>
+
+          {/* Table Menu - Show when inside a table */}
+          {editorState.isTable && (
+            <>
+              <div className="w-px h-6 bg-border mx-1" />
+              <Popover open={isTableMenuOpen} onOpenChange={setIsTableMenuOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0"
+                    title="Table Options"
+                  >
+                    <Table2 className="h-4 w-4" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-56 p-1" align="start">
+                  <button
+                    className="w-full px-3 py-2 text-left text-sm hover:bg-muted rounded transition-colors flex items-center gap-2"
+                    onClick={() => {
+                      editor.chain().focus().addColumnBefore().run();
+                      setIsTableMenuOpen(false);
+                    }}
+                    disabled={!editorState.canAddColumn}
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add Column Before
+                  </button>
+                  <button
+                    className="w-full px-3 py-2 text-left text-sm hover:bg-muted rounded transition-colors flex items-center gap-2"
+                    onClick={() => {
+                      editor.chain().focus().addColumnAfter().run();
+                      setIsTableMenuOpen(false);
+                    }}
+                    disabled={!editorState.canAddColumn}
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add Column After
+                  </button>
+                  <button
+                    className="w-full px-3 py-2 text-left text-sm hover:bg-muted rounded transition-colors flex items-center gap-2"
+                    onClick={() => {
+                      editor.chain().focus().addRowBefore().run();
+                      setIsTableMenuOpen(false);
+                    }}
+                    disabled={!editorState.canAddRow}
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add Row Before
+                  </button>
+                  <button
+                    className="w-full px-3 py-2 text-left text-sm hover:bg-muted rounded transition-colors flex items-center gap-2"
+                    onClick={() => {
+                      editor.chain().focus().addRowAfter().run();
+                      setIsTableMenuOpen(false);
+                    }}
+                    disabled={!editorState.canAddRow}
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add Row After
+                  </button>
+                  <div className="h-px bg-border my-1" />
+                  <button
+                    className="w-full px-3 py-2 text-left text-sm hover:bg-muted rounded transition-colors flex items-center gap-2 text-destructive"
+                    onClick={() => {
+                      editor.chain().focus().deleteColumn().run();
+                      setIsTableMenuOpen(false);
+                    }}
+                    disabled={!editorState.canDeleteColumn}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Delete Column
+                  </button>
+                  <button
+                    className="w-full px-3 py-2 text-left text-sm hover:bg-muted rounded transition-colors flex items-center gap-2 text-destructive"
+                    onClick={() => {
+                      editor.chain().focus().deleteRow().run();
+                      setIsTableMenuOpen(false);
+                    }}
+                    disabled={!editorState.canDeleteRow}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Delete Row
+                  </button>
+                  <button
+                    className="w-full px-3 py-2 text-left text-sm hover:bg-muted rounded transition-colors flex items-center gap-2 text-destructive"
+                    onClick={() => {
+                      editor.chain().focus().deleteTable().run();
+                      setIsTableMenuOpen(false);
+                    }}
+                    disabled={!editorState.canDeleteTable}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Delete Table
+                  </button>
+                </PopoverContent>
+              </Popover>
+            </>
+          )}
+
+          {/* AI Menu */}
           <div className="w-px h-6 bg-border mx-1" />
-          <Popover open={isTableMenuOpen} onOpenChange={setIsTableMenuOpen}>
+          <Popover open={isAIOpen} onOpenChange={setIsAIOpen}>
             <PopoverTrigger asChild>
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-8 w-8 p-0"
-                title="Table Options"
+                disabled={status === "streaming"}
+                className={cn(
+                  "h-8 w-8 p-0",
+                  status === "streaming" && "animate-pulse",
+                )}
+                title={t("editor.ai.button")}
               >
-                <Table2 className="h-4 w-4" />
+                {status === "streaming" ? (
+                  <Loader2 className="h-4 w-4" />
+                ) : (
+                  <Sparkles className="h-4 w-4" />
+                )}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-56 p-1" align="start">
               <button
-                className="w-full px-3 py-2 text-left text-sm hover:bg-muted rounded transition-colors flex items-center gap-2"
+                className="w-full px-3 py-2 text-left text-sm hover:bg-muted rounded transition-colors"
                 onClick={() => {
-                  editor.chain().focus().addColumnBefore().run();
-                  setIsTableMenuOpen(false);
+                  onRunAIAction("explain");
+                  setIsAIOpen(false);
                 }}
-                disabled={!editorState.canAddColumn}
+                disabled={status === "streaming"}
               >
-                <Plus className="h-4 w-4" />
-                Add Column Before
+                {t("editor.ai.actions.explain")}
               </button>
               <button
-                className="w-full px-3 py-2 text-left text-sm hover:bg-muted rounded transition-colors flex items-center gap-2"
+                className="w-full px-3 py-2 text-left text-sm hover:bg-muted rounded transition-colors"
                 onClick={() => {
-                  editor.chain().focus().addColumnAfter().run();
-                  setIsTableMenuOpen(false);
+                  onRunAIAction("improve");
+                  setIsAIOpen(false);
                 }}
-                disabled={!editorState.canAddColumn}
+                disabled={status === "streaming"}
               >
-                <Plus className="h-4 w-4" />
-                Add Column After
-              </button>
-              <button
-                className="w-full px-3 py-2 text-left text-sm hover:bg-muted rounded transition-colors flex items-center gap-2"
-                onClick={() => {
-                  editor.chain().focus().addRowBefore().run();
-                  setIsTableMenuOpen(false);
-                }}
-                disabled={!editorState.canAddRow}
-              >
-                <Plus className="h-4 w-4" />
-                Add Row Before
-              </button>
-              <button
-                className="w-full px-3 py-2 text-left text-sm hover:bg-muted rounded transition-colors flex items-center gap-2"
-                onClick={() => {
-                  editor.chain().focus().addRowAfter().run();
-                  setIsTableMenuOpen(false);
-                }}
-                disabled={!editorState.canAddRow}
-              >
-                <Plus className="h-4 w-4" />
-                Add Row After
+                {t("editor.ai.actions.improvements")}
               </button>
               <div className="h-px bg-border my-1" />
               <button
-                className="w-full px-3 py-2 text-left text-sm hover:bg-muted rounded transition-colors flex items-center gap-2 text-destructive"
+                className="w-full px-3 py-2 text-left text-sm hover:bg-muted rounded transition-colors"
                 onClick={() => {
-                  editor.chain().focus().deleteColumn().run();
-                  setIsTableMenuOpen(false);
+                  onRunAIAction("suggest_question");
+                  setIsAIOpen(false);
                 }}
-                disabled={!editorState.canDeleteColumn}
+                disabled={status === "streaming"}
               >
-                <Trash2 className="h-4 w-4" />
-                Delete Column
-              </button>
-              <button
-                className="w-full px-3 py-2 text-left text-sm hover:bg-muted rounded transition-colors flex items-center gap-2 text-destructive"
-                onClick={() => {
-                  editor.chain().focus().deleteRow().run();
-                  setIsTableMenuOpen(false);
-                }}
-                disabled={!editorState.canDeleteRow}
-              >
-                <Trash2 className="h-4 w-4" />
-                Delete Row
-              </button>
-              <button
-                className="w-full px-3 py-2 text-left text-sm hover:bg-muted rounded transition-colors flex items-center gap-2 text-destructive"
-                onClick={() => {
-                  editor.chain().focus().deleteTable().run();
-                  setIsTableMenuOpen(false);
-                }}
-                disabled={!editorState.canDeleteTable}
-              >
-                <Trash2 className="h-4 w-4" />
-                Delete Table
+                {t("editor.ai.actions.suggestQuestion")}
               </button>
             </PopoverContent>
           </Popover>
         </>
       )}
-
-      {/* AI Menu */}
-      <div className="w-px h-6 bg-border mx-1" />
-      <Popover open={isAIOpen} onOpenChange={setIsAIOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="ghost"
-            size="sm"
-            disabled={status === "streaming"}
-            className={cn(
-              "h-8 w-8 p-0",
-              status === "streaming" && "animate-pulse",
-            )}
-            title={t("editor.ai.button")}
-          >
-            {status === "streaming" ? (
-              <Loader2 className="h-4 w-4" />
-            ) : (
-              <Sparkles className="h-4 w-4" />
-            )}
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-56 p-1" align="start">
-          <button
-            className="w-full px-3 py-2 text-left text-sm hover:bg-muted rounded transition-colors"
-            onClick={() => {
-              onRunAIAction("explain");
-              setIsAIOpen(false);
-            }}
-            disabled={status === "streaming"}
-          >
-            {t("editor.ai.actions.explain")}
-          </button>
-          <button
-            className="w-full px-3 py-2 text-left text-sm hover:bg-muted rounded transition-colors"
-            onClick={() => {
-              onRunAIAction("improve");
-              setIsAIOpen(false);
-            }}
-            disabled={status === "streaming"}
-          >
-            {t("editor.ai.actions.improvements")}
-          </button>
-          <div className="h-px bg-border my-1" />
-          <button
-            className="w-full px-3 py-2 text-left text-sm hover:bg-muted rounded transition-colors"
-            onClick={() => {
-              onRunAIAction("suggest_question");
-              setIsAIOpen(false);
-            }}
-            disabled={status === "streaming"}
-          >
-            {t("editor.ai.actions.suggestQuestion")}
-          </button>
-        </PopoverContent>
-      </Popover>
     </BubbleMenu>
   );
 }

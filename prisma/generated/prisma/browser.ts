@@ -98,6 +98,11 @@ export type Group = Prisma.GroupModel
  */
 export type Account = Prisma.AccountModel
 /**
+ * Model DailyEquity
+ * 
+ */
+export type DailyEquity = Prisma.DailyEquityModel
+/**
  * Model Payout
  * 
  */

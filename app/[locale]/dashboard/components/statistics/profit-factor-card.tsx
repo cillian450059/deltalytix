@@ -22,8 +22,9 @@ export default function ProfitFactorCard({ size = 'medium' }: ProfitFactorCardPr
     return (
       <Card className="h-full">
         <div className="flex items-center justify-center h-full gap-1.5">
-          <Scale className="h-3 w-3 text-blue-500" />
-          <div className="font-medium text-sm">{profitFactor.toFixed(2)}</div>
+          <Scale className="h-3 w-3 text-yellow-500" />
+          <span className="text-xs text-muted-foreground">PF</span>
+          <div className={cn("font-semibold text-base font-mono tabular-nums", profitFactor >= 1 ? "text-yellow-500" : "text-red-500")}>{profitFactor.toFixed(2)}</div>
           <TooltipProvider delayDuration={100}>
             <Tooltip>
               <TooltipTrigger asChild>

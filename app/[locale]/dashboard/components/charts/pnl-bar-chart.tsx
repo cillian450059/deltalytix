@@ -65,7 +65,7 @@ const formatCurrency = (value: number) => {
   return `${value < 0 ? "-" : ""}$${absValue.toFixed(0)}`;
 };
 
-const positiveColor = "hsl(var(--chart-2))"; // Green color
+const positiveColor = "#eab308"; // Yellow color
 const negativeColor = "hsl(var(--chart-loss))"; // Orangish color
 
 const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
@@ -85,7 +85,7 @@ const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
           })}
         </p>
         <p
-          className={`font-bold ${data.pnl >= 0 ? "text-green-600" : "text-red-600"}`}
+          className={`font-bold ${data.pnl >= 0 ? "text-yellow-600" : "text-red-600"}`}
         >
           {t("pnl.tooltip.pnl")}: {formatCurrency(data.pnl)}
         </p>

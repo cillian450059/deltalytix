@@ -1408,6 +1408,11 @@ export type TeamSubscriptionFindManyArgs<ExtArgs extends runtime.Types.Extension
    * Skip the first `n` TeamSubscriptions.
    */
   skip?: number
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+   * 
+   * Filter by unique combinations of TeamSubscriptions.
+   */
   distinct?: Prisma.TeamSubscriptionScalarFieldEnum | Prisma.TeamSubscriptionScalarFieldEnum[]
 }
 

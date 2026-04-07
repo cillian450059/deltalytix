@@ -982,6 +982,11 @@ export type SubscriptionFeedbackFindManyArgs<ExtArgs extends runtime.Types.Exten
    * Skip the first `n` SubscriptionFeedbacks.
    */
   skip?: number
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+   * 
+   * Filter by unique combinations of SubscriptionFeedbacks.
+   */
   distinct?: Prisma.SubscriptionFeedbackScalarFieldEnum | Prisma.SubscriptionFeedbackScalarFieldEnum[]
 }
 

@@ -149,7 +149,7 @@ export function AccountTable({
         <TableCell>{format(metric.date, 'PP', { locale: dateLocale })}</TableCell>
         <TableCell className={cn(
           "text-right font-medium",
-          metric.pnl > 0 ? "text-green-500" : metric.pnl < 0 ? "text-destructive" : ""
+          metric.pnl > 0 ? "text-yellow-500" : metric.pnl < 0 ? "text-destructive" : ""
         )}>
           ${metric.pnl.toFixed(2)}
         </TableCell>
@@ -167,7 +167,7 @@ export function AccountTable({
         </TableCell>
         <TableCell className={cn(
           "text-right font-medium",
-          !isConsistent ? "text-destructive" : "text-green-500"
+          !isConsistent ? "text-destructive" : "text-yellow-500"
         )}>
           {isConsistent ? t('propFirm.status.consistent') : t('propFirm.status.inconsistent')}
         </TableCell>
@@ -250,7 +250,7 @@ export function AccountTable({
         <TableCell>{t('calendar.modal.total')}</TableCell>
         <TableCell className={cn(
           "text-right",
-          totalPnL > 0 ? "text-green-500" : totalPnL < 0 ? "text-destructive" : ""
+          totalPnL > 0 ? "text-yellow-500" : totalPnL < 0 ? "text-destructive" : ""
         )}>
           ${totalPnL.toFixed(2)}
         </TableCell>
@@ -268,7 +268,7 @@ export function AccountTable({
         </TableCell>
         <TableCell className={cn(
           "text-right",
-          hasInconsistentDays ? "text-destructive" : "text-green-500"
+          hasInconsistentDays ? "text-destructive" : "text-yellow-500"
         )}>
           {hasInconsistentDays ? 
             t('propFirm.consistency.inconsistent') : 

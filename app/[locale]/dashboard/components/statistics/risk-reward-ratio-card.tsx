@@ -13,6 +13,7 @@ import { WidgetSize } from '../../types/dashboard'
 import { Scale, HelpCircle } from "lucide-react"
 import { useI18n } from '@/locales/client'
 import { useMemo } from "react"
+import { cn } from "@/lib/utils"
 
 interface RiskRewardRatioCardProps {
   size?: WidgetSize
@@ -54,8 +55,9 @@ export default function RiskRewardRatioCard({ size = 'tiny' }: RiskRewardRatioCa
     <Card className="h-full">
       <div className="flex flex-col items-center justify-center h-full gap-2 p-2">
         <div className="flex items-center gap-1.5">
-          <Scale className="h-3 w-3 text-primary" />
-          <span className="font-medium text-sm">RR {riskRewardRatio}</span>
+          <Scale className="h-3 w-3 text-yellow-500" />
+          <span className="text-xs text-muted-foreground">RR</span>
+          <span className={cn("font-semibold text-base font-mono tabular-nums", riskRewardRatio >= 1 ? "text-yellow-500" : "text-red-500")}>{riskRewardRatio}</span>
           <TooltipProvider delayDuration={100}>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -80,7 +82,7 @@ export default function RiskRewardRatioCard({ size = 'tiny' }: RiskRewardRatioCa
             </TooltipTrigger>
             <TooltipContent side="top" sideOffset={5}>
               <div className="text-xs space-y-0.5">
-                <div className="text-green-500">Avg. Win: ${avgWin.toFixed(2)}</div>
+                <div className="text-yellow-500">Avg. Win: ${avgWin.toFixed(2)}</div>
                 <div className="text-red-500">Avg. Loss: ${avgLoss.toFixed(2)}</div>
               </div>
             </TooltipContent>

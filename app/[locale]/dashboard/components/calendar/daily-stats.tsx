@@ -34,20 +34,37 @@ const formatDuration = (seconds: number) => {
 export function DailyStats({ dayData, isWeekly = false }: DailyStatsProps) {
   const t = useI18n()
 
+  const cashflowSides = ['dividend', 'interest', 'deposit', 'withdrawal', 'fee', 'transfer', 'journal']
+  const depositSides = ['deposit', 'dividend', 'interest']
+  const withdrawSides = ['withdrawal', 'fee', 'transfer', 'journal']
+
   // Calculate stats
-  const { totalPnL, avgTimeInPosition, accountCount, maxDrawdown, maxProfit } = React.useMemo(() => {
+  const { totalPnL, avgTimeInPosition, accountCount, maxDrawdown, maxProfit, cashflowDeposits, cashflowWithdrawals } = React.useMemo(() => {
     if (!dayData?.trades?.length) {
       return {
         totalPnL: 0,
         avgTimeInPosition: 0,
         accountCount: 0,
         maxDrawdown: 0,
-        maxProfit: 0
+        maxProfit: 0,
+        cashflowDeposits: 0,
+        cashflowWithdrawals: 0,
       }
     }
 
-    // Calculate P&L for each account
-    const accountPnL = dayData.trades.reduce((acc, trade) => {
+    // Separate real trades from cashflows
+    const realTrades = dayData.trades.filter(t => !t.side || !cashflowSides.includes(t.side.toLowerCase()))
+    const cashflows = dayData.trades.filter(t => t.side && cashflowSides.includes(t.side.toLowerCase()))
+
+    const cashflowDeposits = cashflows
+      .filter(t => depositSides.includes(t.side!.toLowerCase()))
+      .reduce((sum, t) => sum + (t.pnl || 0), 0)
+    const cashflowWithdrawals = cashflows
+      .filter(t => withdrawSides.includes(t.side!.toLowerCase()))
+      .reduce((sum, t) => sum + (t.pnl || 0), 0)
+
+    // Calculate P&L for each account (only real trades)
+    const accountPnL = realTrades.reduce((acc, trade) => {
       const accountNumber = trade.accountNumber || 'Unknown'
       const totalPnL = trade.pnl - (trade.commission || 0)
       acc[accountNumber] = (acc[accountNumber] || 0) + totalPnL
@@ -55,11 +72,13 @@ export function DailyStats({ dayData, isWeekly = false }: DailyStatsProps) {
     }, {} as Record<string, number>)
 
     const totalPnL = Object.values(accountPnL).reduce((sum, pnl) => sum + pnl, 0)
-    const avgTimeInPosition = dayData.trades.reduce((sum, trade) => sum + trade.timeInPosition, 0) / dayData.trades.length
+    const avgTimeInPosition = realTrades.length > 0
+      ? realTrades.reduce((sum, trade) => sum + trade.timeInPosition, 0) / realTrades.length
+      : 0
     const accountCount = Object.keys(accountPnL).length
 
-    // Add sorting and equity curve
-    const sortedTrades = dayData.trades.sort((a, b) => new Date(a.entryDate).getTime() - new Date(b.entryDate).getTime());
+    // Add sorting and equity curve (only real trades)
+    const sortedTrades = [...realTrades].sort((a, b) => new Date(a.entryDate).getTime() - new Date(b.entryDate).getTime());
     const equity = [0];
     let cumulative = 0;
     sortedTrades.forEach(trade => {
@@ -90,7 +109,9 @@ export function DailyStats({ dayData, isWeekly = false }: DailyStatsProps) {
       avgTimeInPosition,
       accountCount,
       maxDrawdown: maxDD,
-      maxProfit: maxRU
+      maxProfit: maxRU,
+      cashflowDeposits,
+      cashflowWithdrawals,
     }
   }, [dayData?.trades])
 
@@ -108,7 +129,7 @@ export function DailyStats({ dayData, isWeekly = false }: DailyStatsProps) {
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-2 mt-auto">
-            <p className={`text-xl md:text-2xl font-bold ${totalPnL >= 0 ? 'text-[hsl(var(--success))]' : 'text-[hsl(var(--destructive))]'}`}>
+            <p className={`text-xl md:text-2xl font-bold ${totalPnL >= 0 ? 'text-yellow-600 dark:text-yellow-400' : 'text-red-600 dark:text-red-400'}`}>
               {formatCurrency(totalPnL)}
             </p>
             <p className="text-xs md:text-sm text-muted-foreground mt-1">
@@ -157,12 +178,37 @@ export function DailyStats({ dayData, isWeekly = false }: DailyStatsProps) {
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-2 mt-auto">
-            <p className={`text-xl md:text-2xl font-bold ${maxProfit > 0 ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`}>
+            <p className={`text-xl md:text-2xl font-bold ${maxProfit > 0 ? 'text-yellow-600 dark:text-yellow-400' : 'text-muted-foreground'}`}>
               {formatCurrency(maxProfit)}
             </p>
           </CardContent>
         </Card>
       </div>
+      {/* Cashflow indicators */}
+      {(cashflowDeposits !== 0 || cashflowWithdrawals !== 0) && (
+        <div className="flex flex-wrap gap-3">
+          {cashflowDeposits !== 0 && (
+            <Card className="flex-1 min-w-[140px] border-yellow-500/30 bg-yellow-50/50 dark:bg-yellow-900/10">
+              <CardContent className="p-3 flex items-center gap-2">
+                <span className="text-sm text-yellow-600 dark:text-yellow-400 font-medium">入金</span>
+                <span className="text-lg font-bold text-yellow-600 dark:text-yellow-400 font-mono">
+                  +{formatCurrency(cashflowDeposits)}
+                </span>
+              </CardContent>
+            </Card>
+          )}
+          {cashflowWithdrawals !== 0 && (
+            <Card className="flex-1 min-w-[140px] border-yellow-500/30 bg-yellow-50/50 dark:bg-yellow-900/10">
+              <CardContent className="p-3 flex items-center gap-2">
+                <span className="text-sm text-yellow-600 dark:text-yellow-400 font-medium">出金</span>
+                <span className="text-lg font-bold text-yellow-600 dark:text-yellow-400 font-mono">
+                  {formatCurrency(Math.abs(cashflowWithdrawals))}
+                </span>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
     </div>
   )
 } 

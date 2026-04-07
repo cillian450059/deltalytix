@@ -159,6 +159,7 @@ model Synchronization {
   tokenExpiresAt   DateTime?
   dailySyncTime    DateTime?
   includedFeeTypes Json?
+  needsReauth      Boolean   @default(false)
   user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, service, accountId])
@@ -335,6 +336,20 @@ model Account {
   @@index([number])
   @@index([groupId])
   @@index([nextPaymentDate])
+  @@schema("public")
+}
+
+model DailyEquity {
+  id            String   @id @default(uuid())
+  userId        String
+  accountNumber String
+  date          DateTime @db.Date
+  equity        Float
+  cash          Float    @default(0)
+  createdAt     DateTime @default(now())
+
+  @@unique([userId, accountNumber, date])
+  @@index([userId, accountNumber])
   @@schema("public")
 }
 

@@ -552,7 +552,7 @@ function TradeCard({ trade, onClick, timezone, dateLocale, expanded = false, dat
           className={cn(
             "border-l-4 rounded-r-md p-2 cursor-pointer transition-colors hover:opacity-90",
             trade.totalPnL > 0 
-              ? "bg-green-100 border-green-300 text-green-800 dark:bg-green-900/30 dark:border-green-800 dark:text-green-400"
+              ? "bg-yellow-100 border-yellow-300 text-yellow-800 dark:bg-yellow-900/30 dark:border-yellow-800 dark:text-yellow-400"
               : "bg-red-100 border-red-300 text-red-800 dark:bg-red-900/30 dark:border-red-800 dark:text-red-400"
           )}
         >
@@ -586,7 +586,7 @@ function TradeCard({ trade, onClick, timezone, dateLocale, expanded = false, dat
             <DollarSign className="h-4 w-4" />
             <span className={cn(
               "font-medium",
-              trade.totalPnL > 0 ? "text-green-500" : "text-red-500"
+              trade.totalPnL > 0 ? "text-yellow-500" : "text-red-500"
             )}>
               {trade.totalPnL.toFixed(2)}
             </span>
@@ -612,7 +612,7 @@ function TradeCard({ trade, onClick, timezone, dateLocale, expanded = false, dat
                   </TableCell>
                   <TableCell className={cn(
                     "text-right",
-                    t.pnl > 0 ? "text-green-500" : "text-red-500"
+                    t.pnl > 0 ? "text-yellow-500" : "text-red-500"
                   )}>
                     {t.pnl.toFixed(2)}
                   </TableCell>
@@ -621,7 +621,7 @@ function TradeCard({ trade, onClick, timezone, dateLocale, expanded = false, dat
                   </TableCell>
                   <TableCell className={cn(
                     "text-right font-medium",
-                    (t.pnl - t.commission) > 0 ? "text-green-500" : "text-red-500"
+                    (t.pnl - t.commission) > 0 ? "text-yellow-500" : "text-red-500"
                   )}>
                     {(t.pnl - t.commission).toFixed(2)}
                   </TableCell>

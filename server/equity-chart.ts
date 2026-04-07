@@ -24,7 +24,7 @@ export async function getEquityChartDataAction(
   }
 
   try {
-    const [trades, accounts, groups] = await prisma.$transaction([
+    const [trades, accounts, groups, dailyEquities] = await prisma.$transaction([
       prisma.trade.findMany({
         where: { userId: user.id },
         orderBy: { entryDate: "desc" },
@@ -37,9 +37,13 @@ export async function getEquityChartDataAction(
         where: { userId: user.id },
         include: { accounts: true },
       }),
+      prisma.dailyEquity.findMany({
+        where: { userId: user.id },
+        orderBy: { date: "asc" },
+      }),
     ]);
 
-    return computeEquityChartData(
+    const result = computeEquityChartData(
       trades.map((t) => ({
         entryDate: t.entryDate,
         accountNumber: t.accountNumber,
@@ -67,6 +71,27 @@ export async function getEquityChartDataAction(
       })),
       params
     );
+
+    // Merge DailyEquity snapshots into chart data points
+    // Each snapshot represents the actual portfolio value on that date
+    if (dailyEquities.length > 0) {
+      const equityByDate = new Map<string, number>()
+      for (const de of dailyEquities) {
+        const dateKey = new Date(de.date).toISOString().split("T")[0]
+        // Sum equity across all accounts for same date
+        equityByDate.set(dateKey, (equityByDate.get(dateKey) ?? 0) + de.equity)
+      }
+
+      for (const point of result.chartData) {
+        const dateKey = point.date.split("T")[0]
+        const actualEquity = equityByDate.get(dateKey)
+        if (actualEquity !== undefined) {
+          point.actualEquity = actualEquity
+        }
+      }
+    }
+
+    return result;
   } catch (error) {
     console.error("[getEquityChartData] Error:", error);
     throw new Error("Failed to fetch equity chart data");

@@ -7,7 +7,6 @@ import { fr, enUS } from "date-fns/locale"
 import { useParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Pencil } from "lucide-react"
-import { cn } from "@/lib/utils"
 import { HourlyFinancialTimeline } from "./hourly-financial-timeline"
 import { useState, useEffect } from "react"
 import type { FinancialEvent } from "@/prisma/generated/prisma/browser"
@@ -17,22 +16,18 @@ import { useUserStore } from "@/store/user-store"
 import { useTradesStore } from "@/store/trades-store"
 import { useFinancialEventsStore } from "@/store/widgets/financial-events-store"
 
-type ImpactLevel = "low" | "medium" | "high"
-
 interface MindsetSummaryProps {
   date: Date
-  emotionValue: number
   selectedNews: string[]
   journalContent: string
-  onEdit: (section?: 'emotion' | 'journal' | 'news') => void
+  onEdit: (section?: 'journal' | 'news') => void
 }
 
-export function MindsetSummary({ 
-  date, 
-  emotionValue, 
-  selectedNews, 
+export function MindsetSummary({
+  date,
+  selectedNews,
   journalContent,
-  onEdit 
+  onEdit
 }: MindsetSummaryProps) {
   const t = useI18n()
   const { locale } = useParams()
@@ -50,19 +45,11 @@ export function MindsetSummary({
       const matchesDate = eventDate.toDateString() === date.toDateString()
       const matchesLocale = event.lang === locale
       const matchesSelectedNews = !showOnlySelectedNews || selectedNews.includes(event.id)
-      
+
       return matchesDate && matchesLocale && matchesSelectedNews
     })
     setEvents(dateEvents)
   }, [date, financialEvents, locale, selectedNews, showOnlySelectedNews])
-
-  const getEmotionLabel = (value: number) => {
-    if (value < 20) return { label: t('mindset.emotion.verySad'), color: "text-red-500" }
-    if (value < 40) return { label: t('mindset.emotion.sad'), color: "text-orange-500" }
-    if (value < 60) return { label: t('mindset.emotion.neutral'), color: "text-yellow-500" }
-    if (value < 80) return { label: t('mindset.emotion.happy'), color: "text-green-500" }
-    return { label: t('mindset.emotion.veryHappy'), color: "text-emerald-500" }
-  }
 
   // Filter trades for the selected date
   const dayTrades = trades.filter(trade => {
@@ -71,12 +58,6 @@ export function MindsetSummary({
     const selectedDateString = formatInTimeZone(date, timezone, 'yyyy-MM-dd')
     return tradeDateString === selectedDateString
   })
-
-  const [emotion, setEmotion] = useState<{ label: string; color: string }>(getEmotionLabel(emotionValue))
-
-  useEffect(() => {
-   setEmotion(getEmotionLabel(emotionValue))
-  }, [emotionValue])
 
   return (
     <div className="h-full flex flex-col gap-4 p-4 overflow-y-auto">
@@ -87,24 +68,6 @@ export function MindsetSummary({
       </div>
 
       <div className="grid gap-4">
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <p className="text-sm text-muted-foreground">
-                  {t('mindset.emotion.title')}
-                </p>
-                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => onEdit('emotion')}>
-                  <Pencil className="h-3 w-3" />
-                </Button>
-              </div>
-              <p className={cn("text-sm", emotion.color)}>
-                {emotion.label}
-              </p>
-            </div>
-          </div>
-        </div>
-
         <div className="space-y-2">
           <div className="flex items-center gap-2">
             <p className="text-sm text-muted-foreground">
@@ -117,7 +80,7 @@ export function MindsetSummary({
           {!journalContent ? (
             <p className="text-sm text-muted-foreground">{t('mindset.noData')}</p>
           ) : (
-            <div 
+            <div
               key={journalContent}
               className="prose prose-sm dark:prose-invert max-w-none [&_.ProseMirror]:outline-hidden [&_.ProseMirror]:relative [&_.ProseMirror]:h-full"
               dangerouslySetInnerHTML={{ __html: journalContent }}
@@ -157,4 +120,4 @@ export function MindsetSummary({
       </div>
     </div>
   )
-} 
+}

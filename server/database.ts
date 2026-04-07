@@ -156,12 +156,6 @@ function getCachedTrades(userId: string, isSubscribed: boolean, page: number, ch
         take: chunkSize
       }
 
-      if (!isSubscribed) {
-        const twoWeeksAgo = startOfDay(new Date())
-        twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14)
-        query.where.entryDate = { gte: twoWeeksAgo.toISOString() }
-      }
-
       return await prisma.trade.findMany(query)
     },
     // Static string array - this is the cache key
@@ -195,12 +189,6 @@ export async function getTradesAction(userId: string | null = null, forceRefresh
       },
       orderBy: { entryDate: 'desc' }
     }
-    if (!isSubscribed) {
-      const twoWeeksAgo = startOfDay(new Date())
-      twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14)
-      query.where.entryDate = { gte: twoWeeksAgo.toISOString() }
-    }
-
     const trades = await prisma.trade.findMany(query)
     console.log(`[getTrades] Force refresh - Found ${trades.length} trades`)
 
@@ -217,11 +205,6 @@ export async function getTradesAction(userId: string | null = null, forceRefresh
     where: {
       userId: userId || user?.id,
     }
-  }
-  if (!isSubscribed) {
-    const twoWeeksAgo = startOfDay(new Date())
-    twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14)
-    query.where.entryDate = { gte: twoWeeksAgo.toISOString() }
   }
   const count = await prisma.trade.count(query)
   // Split pages by chunks of 1000

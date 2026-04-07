@@ -54,6 +54,7 @@ import { getTradesCache, setTradesCache } from "@/lib/indexeddb/trades-cache";
 import { endOfDay, isValid, parseISO, set, startOfDay } from "date-fns";
 import { formatInTimeZone } from "date-fns-tz";
 import { calculateStatistics, formatCalendarData } from "@/lib/utils";
+import { calculateAdvancedStatistics, type AdvancedStatistics } from "@/lib/advanced-statistics";
 import { useParams } from "next/navigation";
 import { deleteTagAction } from "@/server/tags";
 import { useRouter } from "next/navigation";
@@ -235,6 +236,7 @@ interface DataContextType {
 
   // Statistics and calendar
   statistics: StatisticsProps;
+  advancedStatistics: AdvancedStatistics;
   calendarData: CalendarData;
 
   // Mutations
@@ -481,28 +483,17 @@ export const DataProvider: React.FC<{
         }
       }
 
-      // Step 2: Fetch trades (with caching server side)
-      // I think we could make basic computations server side to offload inital stats computations
-      // Dev: prefer local IndexedDB to avoid hitting remote DB on reloads
-      if (
-        process.env.NODE_ENV === "development" &&
-        user.id &&
-        !params?.isSharedView // avoid caching shared/public views
-      ) {
-        const cachedTrades = await getTradesCache(user.id);
-        if (cachedTrades && Array.isArray(cachedTrades) && cachedTrades.length > 0) {
-          setTrades(cachedTrades);
-        } else {
-          const trades = await getTradesAction(user.id, false);
-          const safeTrades = Array.isArray(trades) ? trades : [];
-          setTrades(safeTrades);
-          setTradesCache(user.id, safeTrades).catch((err) =>
+      // Step 2: Fetch trades — always fetch fresh from DB
+      {
+        const userId = user.id;
+        const trades = await getTradesAction(userId || undefined, true);
+        const safeTrades = Array.isArray(trades) ? trades : [];
+        setTrades(safeTrades);
+        if (process.env.NODE_ENV === "development" && userId) {
+          setTradesCache(userId, safeTrades).catch((err) =>
             console.error("[DataProvider] Failed to cache trades in IndexedDB (loadData)", err),
           );
         }
-      } else {
-        const trades = await getTradesAction();
-        setTrades(Array.isArray(trades) ? trades : []);
       }
 
       // Step 3: Fetch user data
@@ -582,6 +573,13 @@ export const DataProvider: React.FC<{
       mounted = false;
     };
   }, [isSharedView]); // Only depend on isSharedView
+
+  // Refetch equity chart when filters change
+  useEffect(() => {
+    if (hasEquityChartWidget && !isSharedView && !isLoading) {
+      fetchEquityChartData();
+    }
+  }, [fetchEquityChartData, hasEquityChartWidget, isSharedView]);
 
   // Persist language changes without blocking UI
   useEffect(() => {
@@ -957,6 +955,11 @@ export const DataProvider: React.FC<{
       profitFactor,
     };
   }, [formattedTrades, accounts]);
+
+  const advancedStatistics = useMemo(
+    () => calculateAdvancedStatistics(formattedTrades),
+    [formattedTrades]
+  );
 
   const calendarData = useMemo(
     () => formatCalendarData(formattedTrades, accounts),
@@ -1569,6 +1572,7 @@ export const DataProvider: React.FC<{
 
     // Statistics and calendar
     statistics,
+    advancedStatistics,
     calendarData,
 
     // Mutations
@@ -1608,5 +1612,10 @@ export const useData = () => {
     throw new Error("useData must be used within a DataProvider");
   }
   return context;
+};
+
+/** Safe version that returns null when outside DataProvider (e.g. landing page previews) */
+export const useDataSafe = () => {
+  return useContext(DataContext);
 };
 

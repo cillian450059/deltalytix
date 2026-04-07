@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { useData } from "@/context/data-provider"
+import { useDataSafe } from "@/context/data-provider"
 import { Clock, PiggyBank, Award, BarChart, Info } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn, calculateStatistics } from "@/lib/utils"
@@ -25,7 +25,7 @@ function debounce<T extends (...args: any[]) => void>(func: T, wait: number): (.
 }
 
 export default function StatisticsWidget({ size = 'medium', dayData }: StatisticsWidgetProps) {
-  const dataContext = useData()
+  const dataContext = useDataSafe()
   const [activeTooltip, setActiveTooltip] = React.useState<string | null>(null)
   const [isTouch, setIsTouch] = React.useState(false)
   const cardRef = React.useRef<HTMLDivElement>(null)
@@ -54,8 +54,8 @@ export default function StatisticsWidget({ size = 'medium', dayData }: Statistic
       // Calculate statistics for this specific day
       return calculateStatistics(dayData.trades as Trade[], [])
     }
-    return dataContext.statistics
-  }, [dayData, dataContext.statistics])
+    return dataContext?.statistics
+  }, [dayData, dataContext?.statistics])
 
   const calendarData = React.useMemo(() => {
     if (dayData) {
@@ -69,19 +69,28 @@ export default function StatisticsWidget({ size = 'medium', dayData }: Statistic
         }
       }
     }
-    return dataContext.calendarData
-  }, [dayData, dataContext.calendarData])
+    return dataContext?.calendarData
+  }, [dayData, dataContext?.calendarData])
 
-  const { 
-    nbWin, nbLoss, nbBe, nbTrades, 
-    averagePositionTime, 
+  const {
+    nbWin, nbLoss, nbBe, nbTrades,
+    averagePositionTime,
     cumulativePnl, cumulativeFees,
     winningStreak,
     grossLosses,
     grossWin,
     totalPayouts,
     nbPayouts
-  } = statistics
+  } = statistics ?? {
+    nbWin: 0, nbLoss: 0, nbBe: 0, nbTrades: 0,
+    averagePositionTime: 0,
+    cumulativePnl: 0, cumulativeFees: 0,
+    winningStreak: 0,
+    grossLosses: 0,
+    grossWin: 0,
+    totalPayouts: 0,
+    nbPayouts: 0,
+  }
 
   // Calculate Net P&L including payouts
   const netPnlWithPayouts = cumulativePnl - cumulativeFees - totalPayouts
@@ -92,7 +101,7 @@ export default function StatisticsWidget({ size = 'medium', dayData }: Statistic
   const beRate = Number((nbBe / nbTrades * 100).toFixed(2))
 
   // Calculate long/short data
-  const chartData = Object.entries(calendarData).map(([date, values]) => ({
+  const chartData = Object.entries(calendarData ?? {}).map(([date, values]) => ({
     date,
     pnl: values.pnl,
     shortNumber: values.shortNumber,
@@ -251,7 +260,7 @@ export default function StatisticsWidget({ size = 'medium', dayData }: Statistic
                 <span className="text-muted-foreground text-xs font-medium">{t('statistics.profitLoss.net')}</span>
                 <span className={cn(
                   "text-sm font-bold font-mono",
-                  netPnlWithPayouts > 0 ? "text-green-500" : "text-red-500"
+                  netPnlWithPayouts > 0 ? "text-yellow-500" : "text-red-500"
                 )}>
                   {formatCurrency(netPnlWithPayouts)}
                 </span>
@@ -284,7 +293,7 @@ export default function StatisticsWidget({ size = 'medium', dayData }: Statistic
                     </Tooltip>
                   </TooltipProvider>
                 </div>
-                <span className="text-sm font-medium text-green-500 font-mono">{formatCurrency(avgWinPerDay)}</span>
+                <span className="text-sm font-medium text-yellow-500 font-mono">{formatCurrency(avgWinPerDay)}</span>
               </div>
               {size !== 'tiny' && (
                 <div className="flex justify-between items-center">
@@ -320,7 +329,7 @@ export default function StatisticsWidget({ size = 'medium', dayData }: Statistic
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-muted-foreground text-xs">{t('statistics.activity.winningTrades')}</span>
-                <span className="text-sm font-medium text-green-500">{nbWin}</span>
+                <span className="text-sm font-medium text-yellow-500">{nbWin}</span>
               </div>
               {size !== 'tiny' && (
                 <div className="flex justify-between items-center">

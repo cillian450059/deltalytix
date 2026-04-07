@@ -37,6 +37,9 @@ yarn-error.log*
 # env files
 .env
 
+# Firstrade session cookies (contain username in filename)
+ft_cookies*.json
+
 # vercel
 .vercel
 
@@ -64,3 +67,7 @@ datafeeds/
 
 # Lock files
 *.lock
+
+# Python
+__pycache__/
+*.pyc

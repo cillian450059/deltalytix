@@ -153,8 +153,8 @@
     --accent-foreground: 0 0% 9%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    --success: 173 58% 39%;
-    --success-foreground: 355.7 100% 97.3%;
+    --success: 45 93% 47%;
+    --success-foreground: 0 0% 98%;
     --border: 0 0% 89.8%;
     --input: 0 0% 89.8%;
     --ring: 0 0% 3.9%;
@@ -167,8 +167,8 @@
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
+    --chart-1: 0 84% 60%;
+    --chart-2: 45 93% 47%;
     --chart-3: 197 37% 24%;
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
@@ -176,8 +176,8 @@
     --chart-6: 206 72% 50%; /* blue */
     --chart-7: 260 60% 55%; /* purple */
     --chart-8: 336 70% 58%; /* rose */
-    --chart-loss: 12 76% 61%;
-    --chart-win: 173 58% 39%;
+    --chart-loss: 0 84% 60%;
+    --chart-win: 45 93% 47%;
   }
 
   .dark {
@@ -197,8 +197,8 @@
     --accent-foreground: 0 0% 98%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
-    --success: 173 58% 39%;
-    --success-foreground: 144.9 80.4% 10%;
+    --success: 45 93% 47%;
+    --success-foreground: 0 0% 9%;
     --border: 0 0% 14.9%;
     --input: 0 0% 14.9%;
     --ring: 0 0% 83.1%;
@@ -212,15 +212,15 @@
     --sidebar-ring: 217.2 91.2% 59.8%;
     /* Dark theme realigned to mirror light theme hues for consistency */
     --chart-1: 217 91% 60%;   /* blue */
-    --chart-2: 173 60% 55%;  /* teal-green */
+    --chart-2: 45 93% 47%;  /* yellow */
     --chart-3: 197 55% 60%;  /* blue-gray */
     --chart-4: 43 85% 60%;   /* golden yellow */
     --chart-5: 27 85% 60%;   /* orange */
     --chart-6: 206 80% 60%;  /* blue */
     --chart-7: 260 65% 65%;  /* purple */
     --chart-8: 336 70% 65%;  /* rose */
-    --chart-loss: 12 75% 65%;
-    --chart-win: 173 60% 55%;
+    --chart-loss: 0 84% 60%;
+    --chart-win: 45 93% 47%;
   }
 }
 

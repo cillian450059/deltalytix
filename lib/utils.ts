@@ -151,17 +151,17 @@ export function formatCalendarData(trades: Trade[], accounts: Account[] = []) {
   return trades.reduce((acc: any, trade: Trade) => {
     // Parse the date and format it in UTC to ensure consistency across timezones
     const date = formatInTimeZone(new Date(trade.entryDate), 'UTC', 'yyyy-MM-dd')
-    
+
     if (!acc[date]) {
       acc[date] = { pnl: 0, tradeNumber: 0, longNumber: 0, shortNumber: 0, trades: [] }
     }
     acc[date].tradeNumber++
-    acc[date].pnl += trade.pnl-trade.commission;
+    acc[date].pnl += trade.pnl - trade.commission
 
-    const isLong = trade.side 
-      ? (trade.side.toLowerCase() === 'long' || trade.side.toLowerCase() === 'buy' || trade.side.toLowerCase() === 'b') 
+    const isLong = trade.side
+      ? (trade.side.toLowerCase() === 'long' || trade.side.toLowerCase() === 'buy' || trade.side.toLowerCase() === 'b')
       : (new Date(trade.entryDate).getTime() < new Date(trade.closeDate).getTime())
-    
+
     acc[date].longNumber += isLong ? 1 : 0
     acc[date].shortNumber += isLong ? 0 : 1
     acc[date].trades.push(trade)
