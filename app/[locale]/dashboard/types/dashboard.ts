@@ -34,6 +34,7 @@ export type WidgetType =
   | 'sharpeCard'
   | 'maxDrawdownCard'
   | 'monteCarloWidget'
+  | 'checklistWidget'
 export type WidgetSize = 'tiny' | 'small' | 'small-long' | 'medium' | 'large' | 'extra-large'
 
 export interface LayoutItem {

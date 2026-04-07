@@ -43,6 +43,7 @@ import ExpectancyCard from '../components/statistics/expectancy-card'
 import SharpeCard from '../components/statistics/sharpe-card'
 import MaxDrawdownCard from '../components/statistics/max-drawdown-card'
 import MonteCarloWidget from '../components/charts/monte-carlo-widget'
+import ChecklistWidget from '../components/other/checklist-widget'
 
 export interface WidgetConfig {
   type: WidgetType
@@ -716,6 +717,23 @@ export const WIDGET_REGISTRY: Record<WidgetType, WidgetConfig> = {
         <p className="text-sm font-medium">Monte Carlo Simulation</p>
         <p className="text-xs text-muted-foreground">
           Forward-looking equity curve confidence bands, ruin probability, and return distribution across thousands of simulated trade sequences.
+        </p>
+      </div>
+    ),
+  },
+  checklistWidget: {
+    type: 'checklistWidget',
+    defaultSize: 'small',
+    allowedSizes: ['small', 'medium', 'large'],
+    category: 'other',
+    previewHeight: 240,
+    getComponent: ({ size }) => <ChecklistWidget />,
+    getPreview: () => (
+      <div className="flex h-[240px] flex-col items-center justify-center gap-2 rounded-lg border border-border/50 bg-muted/20 p-6 text-center">
+        <span className="text-2xl">☑️</span>
+        <p className="text-sm font-medium">Watchlist Checklist</p>
+        <p className="text-xs text-muted-foreground">
+          Track stocks and tickers with a persistent checklist. Check off items with a yellow square, items persist across sessions.
         </p>
       </div>
     ),
