@@ -707,7 +707,7 @@ export const WIDGET_REGISTRY: Record<WidgetType, WidgetConfig> = {
     type: 'monteCarloWidget',
     defaultSize: 'large',
     allowedSizes: ['large', 'extra-large'],
-    category: 'analytics',
+    category: 'charts',
     previewHeight: 320,
     getComponent: ({ size }) => <MonteCarloWidget />,
     getPreview: () => (
