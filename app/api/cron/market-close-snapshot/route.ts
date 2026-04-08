@@ -20,6 +20,7 @@ import { fetchClosingPrices } from '@/lib/closing-prices'
 import { saveTradesAction } from '@/server/database'
 import { generateDeterministicTradeId } from '@/lib/trade-id-utils'
 import { Trade } from '@/prisma/generated/prisma/client'
+import { decryptToken } from '@/lib/token-crypto'
 
 const FT_URL = process.env.FIRSTRADE_SERVICE_URL || 'http://localhost:8100'
 const FT_KEY = process.env.FIRSTRADE_SERVICE_API_KEY || ''
@@ -84,7 +85,7 @@ export async function GET(request: NextRequest) {
 
     let sessionData: { cookies: string; headers: string }
     try {
-      sessionData = JSON.parse(sync.token)
+      sessionData = JSON.parse(decryptToken(sync.token))
     } catch {
       results.push({ userId: sync.userId, accountId: sync.accountId, error: 'invalid_token_json' })
       continue

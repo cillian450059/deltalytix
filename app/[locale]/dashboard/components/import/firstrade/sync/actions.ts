@@ -2,6 +2,7 @@
 
 import { prisma } from '@/lib/prisma'
 import { getUserId } from '@/server/auth'
+import { encryptToken, decryptToken } from '@/lib/token-crypto'
 import { saveTradesAction } from '@/server/database'
 import { generateDeterministicTradeId } from '@/lib/trade-id-utils'
 import { Trade } from '@/prisma/generated/prisma/client'
@@ -478,8 +479,9 @@ export async function storeFirstradeSync(
     const tokenOk = !!sessionToken && sessionToken.length > 0
     console.log(`[Firstrade] storeSync ${accountId}: tokenOk=${tokenOk}`)
 
-    // Always update token and needsReauth on reconnect — even if export failed,
-    // clear any stale state so the user sees the real status.
+    // Encrypt before storing — protects session cookies in case of DB breach
+    const encryptedToken = tokenOk ? encryptToken(sessionToken!) : ''
+
     await prisma.synchronization.upsert({
       where: {
         userId_service_accountId: {
@@ -492,13 +494,13 @@ export async function storeFirstradeSync(
         userId,
         service: 'firstrade',
         accountId,
-        token: sessionToken ?? '',
+        token: encryptedToken,
         lastSyncedAt: new Date(),
         needsReauth: !tokenOk,
       },
       update: {
         lastSyncedAt: new Date(),
-        token: tokenOk ? sessionToken! : '',
+        token: encryptedToken,
         needsReauth: !tokenOk,
       },
     })
