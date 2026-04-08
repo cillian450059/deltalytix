@@ -439,14 +439,16 @@ export async function fetchAndSaveDailyEquity(
 export async function storeFirstradeSync(
   accountId: string,
   sessionId?: string
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; tokenStored?: boolean; error?: string }> {
   try {
     const userId = await getUserId()
 
     // Export session cookies so the nightly cron can restore without re-login.
     let sessionToken: string | undefined
+    let exportError: string | undefined
     if (sessionId) {
       try {
+        console.log(`[Firstrade] Exporting session for ${accountId}, sessionId=${sessionId.substring(0, 8)}...`)
         const exportResp = await fetchWithTimeout(`${FIRSTRADE_SERVICE_URL}/session-export`, {
           method: 'POST',
           headers: serviceHeaders(),
@@ -454,16 +456,30 @@ export async function storeFirstradeSync(
         }, DEFAULT_TIMEOUT)
         if (exportResp.ok) {
           const exportData = await exportResp.json()
+          console.log(`[Firstrade] session-export response: success=${exportData.success}, hasCookies=${!!exportData.cookies}, hasHeaders=${!!exportData.headers}`)
           if (exportData.success && exportData.cookies) {
             sessionToken = JSON.stringify({ cookies: exportData.cookies, headers: exportData.headers })
+            console.log(`[Firstrade] Session token built, length=${sessionToken.length}`)
+          } else {
+            exportError = `session-export returned success=${exportData.success}, hasCookies=${!!exportData.cookies}`
           }
+        } else {
+          const errBody = await exportResp.text().catch(() => '')
+          exportError = `session-export HTTP ${exportResp.status}: ${errBody.substring(0, 200)}`
         }
-      } catch {
-        // Non-fatal: sync still works, cron just won't auto-refresh
-        console.warn('[Firstrade] Could not export session cookies')
+      } catch (err) {
+        exportError = err instanceof Error ? err.message : 'Unknown export error'
+      }
+      if (exportError) {
+        console.error(`[Firstrade] Session export failed for ${accountId}: ${exportError}`)
       }
     }
 
+    const tokenOk = !!sessionToken && sessionToken.length > 0
+    console.log(`[Firstrade] storeSync ${accountId}: tokenOk=${tokenOk}`)
+
+    // Always update token and needsReauth on reconnect — even if export failed,
+    // clear any stale state so the user sees the real status.
     await prisma.synchronization.upsert({
       where: {
         userId_service_accountId: {
@@ -478,15 +494,16 @@ export async function storeFirstradeSync(
         accountId,
         token: sessionToken ?? '',
         lastSyncedAt: new Date(),
-        needsReauth: false,
+        needsReauth: !tokenOk,
       },
       update: {
         lastSyncedAt: new Date(),
-        ...(sessionToken !== undefined && { token: sessionToken, needsReauth: false }),
+        token: tokenOk ? sessionToken! : '',
+        needsReauth: !tokenOk,
       },
     })
 
-    return { success: true }
+    return { success: true, tokenStored: tokenOk }
   } catch (error) {
     console.error('[Firstrade] storeSync error:', error)
     return { success: false, error: 'Failed to store sync configuration' }

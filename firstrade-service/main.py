@@ -6,10 +6,20 @@ import uuid
 import time
 import json
 import secrets
+from pathlib import Path
 from datetime import datetime, timedelta
 from fastapi import FastAPI, HTTPException, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+
+# Load .env from the service directory (python-dotenv not required)
+_env_path = Path(__file__).resolve().parent / ".env"
+if _env_path.exists():
+    for line in _env_path.read_text().splitlines():
+        line = line.strip()
+        if line and not line.startswith("#") and "=" in line:
+            key, _, value = line.partition("=")
+            os.environ.setdefault(key.strip(), value.strip())
 
 app = FastAPI(title="Firstrade Sync Service", docs_url=None, redoc_url=None)
 

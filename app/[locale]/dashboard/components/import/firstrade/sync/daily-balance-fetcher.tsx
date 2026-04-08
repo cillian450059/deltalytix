@@ -5,40 +5,18 @@ import { useFirstradeSyncContext } from "@/context/firstrade-sync-context"
 
 /**
  * Fetches and saves today's Firstrade portfolio balance to DailyEquity.
- * Only runs during the US market close window (ET 4:00 PM – 6:30 PM, weekdays)
- * to capture official closing prices, not after-hours prices.
+ *
+ * Runs once per calendar day whenever the user opens the dashboard.
+ * The Vercel cron (market-close-snapshot) captures official closing prices;
+ * this component captures a live intraday snapshot so the calendar always
+ * has *something* for today, even if the cron hasn't fired yet.
  */
-function isWithinMarketCloseWindow(): boolean {
-  const now = new Date()
-
-  // Check weekday in ET
-  const etFormatter = new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/New_York",
-    weekday: "short",
-    hour: "numeric",
-    minute: "numeric",
-    hour12: false,
-  })
-  const parts = etFormatter.formatToParts(now)
-  const weekday = parts.find((p) => p.type === "weekday")?.value ?? ""
-  const hour = parseInt(parts.find((p) => p.type === "hour")?.value ?? "0", 10)
-  const minute = parseInt(parts.find((p) => p.type === "minute")?.value ?? "0", 10)
-
-  // Only Mon–Fri
-  if (["Sat", "Sun"].includes(weekday)) return false
-
-  // ET 16:00 (4 PM) to 18:30 (6:30 PM)
-  const totalMinutes = hour * 60 + minute
-  return totalMinutes >= 16 * 60 && totalMinutes < 18 * 60 + 30
-}
-
 export function DailyBalanceFetcher() {
   const { sessionId, fetchDailyBalance } = useFirstradeSyncContext()
   const hasFetchedRef = useRef(false)
 
   useEffect(() => {
     if (!sessionId || hasFetchedRef.current) return
-    if (!isWithinMarketCloseWindow()) return
 
     // Only once per calendar day
     const todayKey = new Date().toISOString().split("T")[0]
@@ -46,9 +24,15 @@ export function DailyBalanceFetcher() {
     if (lastFetch === todayKey) return
 
     hasFetchedRef.current = true
-    fetchDailyBalance(sessionId).then(() => {
-      localStorage.setItem("ft_balance_fetch_date", todayKey)
-    })
+    fetchDailyBalance(sessionId)
+      .then(() => {
+        localStorage.setItem("ft_balance_fetch_date", todayKey)
+      })
+      .catch((err) => {
+        // Allow retry on next mount if fetch failed
+        hasFetchedRef.current = false
+        console.warn("[DailyBalanceFetcher] Failed:", err)
+      })
   }, [sessionId, fetchDailyBalance])
 
   return null

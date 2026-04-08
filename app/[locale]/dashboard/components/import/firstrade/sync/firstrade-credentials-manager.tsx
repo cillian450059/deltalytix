@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
-import { Loader2, Trash2, Plus, RefreshCw, MoreVertical } from 'lucide-react'
+import { Loader2, Trash2, Plus, RefreshCw, MoreVertical, AlertTriangle, WifiOff } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -44,6 +44,8 @@ export function FirstradeCredentialsManager() {
     isAutoSyncing,
     sessionId,
     setSessionId,
+    serviceAvailable,
+    needsReconnect,
   } = useFirstradeSyncContext()
 
   // Dialog states
@@ -137,8 +139,10 @@ export function FirstradeCredentialsManager() {
       }
 
       // Store sync records for each account
+      let allTokensStored = true
       for (const acctId of accountsResult.accounts) {
-        await storeFirstradeSync(acctId, sid)
+        const storeResult = await storeFirstradeSync(acctId, sid)
+        if (!storeResult.tokenStored) allTokensStored = false
       }
 
       // Reset form
@@ -147,6 +151,12 @@ export function FirstradeCredentialsManager() {
       setOtpCode('')
       setIsAddDialogOpen(false)
 
+      // Clear DailyBalanceFetcher cache so it re-runs today
+      localStorage.removeItem('ft_balance_fetch_date')
+
+      if (!allTokensStored) {
+        toast.warning('已連線但 session 儲存失敗，自動同步可能無法運作。請確認 Firstrade 服務是否正常。', { duration: 8000 })
+      }
       toast.success(`Connected ${accountsResult.accounts.length} account(s). Syncing trades...`)
       await loadAccounts()
 
@@ -249,6 +259,30 @@ export function FirstradeCredentialsManager() {
         </div>
       </div>
 
+      {serviceAvailable === false && (
+        <div className="flex items-center gap-2 p-3 rounded-lg border border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950 text-red-800 dark:text-red-200 text-sm">
+          <WifiOff className="h-4 w-4 shrink-0" />
+          <span>Firstrade 同步服務未啟動。請確認 firstrade-service 正在運行。</span>
+        </div>
+      )}
+
+      {needsReconnect && serviceAvailable !== false && accounts.length > 0 && (
+        <div className="flex items-center justify-between gap-2 p-3 rounded-lg border border-yellow-200 bg-yellow-50 dark:border-yellow-900 dark:bg-yellow-950 text-yellow-800 dark:text-yellow-200 text-sm">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4 shrink-0" />
+            <span>Firstrade 連線已過期，請重新登入以恢復自動同步。</span>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setIsAddDialogOpen(true)}
+            className="shrink-0 h-7 text-xs"
+          >
+            重新連線
+          </Button>
+        </div>
+      )}
+
       <div className="border rounded-lg">
         <Table>
           <TableHeader>
@@ -267,24 +301,28 @@ export function FirstradeCredentialsManager() {
                 <TableCell>
                   <span
                     className={`px-2 py-1 rounded text-xs ${
-                      account.hasToken
+                      account.hasToken && !account.needsReauth
                         ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
                         : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
                     }`}
                   >
-                    {account.hasToken ? 'Connected' : 'Session Expired'}
+                    {account.hasToken && !account.needsReauth
+                      ? 'Connected'
+                      : account.needsReauth
+                        ? '連線已過期'
+                        : '尚未連線'}
                   </span>
                 </TableCell>
                 <TableCell>
                   <div className="flex justify-center items-center gap-2">
-                    {!account.hasToken && (
+                    {(!account.hasToken || account.needsReauth) && (
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => setIsAddDialogOpen(true)}
                         className="h-8"
                       >
-                        Reconnect
+                        重新連線
                       </Button>
                     )}
                     {sessionId && (

@@ -65,6 +65,13 @@ export default function ImportCallbackPage() {
       try {
         const code = searchParams.get("code");
         const state = searchParams.get("state");
+        const oauthError = searchParams.get("error");
+
+        // If no code and no error param, user navigated here directly — redirect to dashboard
+        if (!code && !oauthError) {
+          router.replace("/dashboard");
+          return;
+        }
 
         console.log("OAuth callback received:", {
           hasCode: !!code,
@@ -77,7 +84,7 @@ export default function ImportCallbackPage() {
         });
 
         if (!code) {
-          setError("No authorization code received");
+          setError(oauthError ? `Authorization denied: ${oauthError}` : "No authorization code received");
           setStatus("error");
           return;
         }

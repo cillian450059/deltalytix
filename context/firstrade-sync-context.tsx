@@ -11,6 +11,7 @@ export interface FirstradeSyncAccount {
   service: string
   accountId: string
   hasToken: boolean
+  needsReauth?: boolean
   lastSyncedAt: Date
   dailySyncTime: Date | null
   createdAt: Date
@@ -27,6 +28,8 @@ interface FirstradeSyncContextType {
   deleteAccount: (accountId: string) => Promise<void>
   sessionId: string | null
   setSessionId: (id: string | null) => void
+  serviceAvailable: boolean | null
+  needsReconnect: boolean
 }
 
 const FirstradeSyncContext = createContext<FirstradeSyncContextType | undefined>(undefined)
@@ -35,9 +38,13 @@ export function FirstradeSyncContextProvider({ children }: { children: ReactNode
   const [isAutoSyncing, setIsAutoSyncing] = useState(false)
   const [accounts, setAccounts] = useState<FirstradeSyncAccount[]>([])
   const [sessionId, setSessionId] = useState<string | null>(null)
+  const [serviceAvailable, setServiceAvailable] = useState<boolean | null>(null)
 
   const t = useI18n()
   const { refreshTradesOnly } = useData()
+
+  // Derived: any account needs reauth or has no token
+  const needsReconnect = accounts.some((acc) => acc.needsReauth || !acc.hasToken)
 
   const normalizeSynchronization = useCallback(
     (sync: any): FirstradeSyncAccount => ({
@@ -46,6 +53,7 @@ export function FirstradeSyncContextProvider({ children }: { children: ReactNode
       service: sync.service,
       accountId: sync.accountId,
       hasToken: !!sync.hasToken,
+      needsReauth: !!sync.needsReauth,
       lastSyncedAt: sync?.lastSyncedAt ? new Date(sync.lastSyncedAt) : new Date(),
       dailySyncTime: sync?.dailySyncTime ? new Date(sync.dailySyncTime) : null,
       createdAt: sync?.createdAt ? new Date(sync.createdAt) : new Date(),
@@ -53,6 +61,19 @@ export function FirstradeSyncContextProvider({ children }: { children: ReactNode
     }),
     [],
   )
+
+  // Check if FastAPI service is running
+  const checkServiceHealth = useCallback(async () => {
+    try {
+      const resp = await fetch('/api/firstrade/health', { signal: AbortSignal.timeout(5000) })
+      const data = await resp.json()
+      setServiceAvailable(data.available === true)
+      return data.available === true
+    } catch {
+      setServiceAvailable(false)
+      return false
+    }
+  }, [])
 
   const loadAccounts = useCallback(async () => {
     try {
@@ -190,7 +211,8 @@ export function FirstradeSyncContextProvider({ children }: { children: ReactNode
 
   useEffect(() => {
     loadAccounts()
-  }, [loadAccounts])
+    checkServiceHealth()
+  }, [loadAccounts, checkServiceHealth])
 
   return (
     <FirstradeSyncContext.Provider
@@ -204,6 +226,8 @@ export function FirstradeSyncContextProvider({ children }: { children: ReactNode
         deleteAccount,
         sessionId,
         setSessionId,
+        serviceAvailable,
+        needsReconnect,
       }}
     >
       {children}

@@ -1,13 +1,12 @@
 'use client'
 
 import React, { useState, useEffect, useMemo } from "react"
-import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, startOfWeek, getDay, endOfWeek, addDays, isSameDay, getYear } from "date-fns"
+import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, startOfWeek, endOfWeek, addDays, getYear } from "date-fns"
 import { formatInTimeZone } from 'date-fns-tz'
 import { fr, enUS } from 'date-fns/locale'
-import { ChevronLeft, ChevronRight, Newspaper, Calendar, CalendarDays } from "lucide-react"
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { ChevronLeft, ChevronRight, Newspaper, Calendar } from "lucide-react"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { FinancialEvent } from "@/prisma/generated/prisma/browser"
 import { CalendarModal } from "./daily-modal"
@@ -16,8 +15,7 @@ import { translateWeekday } from "@/lib/translation-utils"
 import { WeeklyModal } from "./weekly-modal"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { HourlyFinancialTimeline } from "../mindset/hourly-financial-timeline"
-import { ImportanceFilter } from "@/app/[locale]/dashboard/components/importance-filter"
-// CountryFilter removed from calendar UI
+// CountryFilter and ImportanceFilter removed from calendar UI
 import { useNewsFilterStore } from "@/store/filters/news-filter-store"
 import { useCalendarViewStore } from "@/store/widgets/calendar-view"
 import WeeklyCalendarPnl from "./weekly-calendar"
@@ -91,6 +89,22 @@ const formatCurrency = (value: number, options?: { minimumFractionDigits?: numbe
   return formatted
 }
 
+// Compact number: 12345 → +1.23萬, 500 → +500
+function formatCompact(value: number, mode: 'equity' | 'change' = 'change'): string {
+  const abs = Math.abs(value)
+  if (mode === 'equity') {
+    // NAV: always show $ prefix, no sign
+    if (abs >= 100_000_000) return `$${(abs / 100_000_000).toFixed(2)}億`
+    if (abs >= 10_000) return `$${(abs / 10_000).toFixed(2)}萬`
+    return `$${abs.toFixed(2)}`
+  }
+  // change: show – for negative, $ prefix
+  const sign = value < 0 ? '-' : ''
+  if (abs >= 100_000_000) return `${sign}$${(abs / 100_000_000).toFixed(2)}億`
+  if (abs >= 10_000) return `${sign}$${(abs / 10_000).toFixed(2)}萬`
+  return `${sign}$${abs.toFixed(2)}`
+}
+
 const truncateAccountNumber = (accountNumber: string, maxLength: number = 15): string => {
   if (accountNumber.length <= maxLength) {
     return accountNumber
@@ -113,6 +127,7 @@ interface CalendarPnlProps {
   calendarData: CalendarData;
   financialEvents?: FinancialEvent[];
   hideFiltersOnMobile?: boolean;
+  equityMap?: Record<string, { equity: number; cash: number }>;
 }
 
 
@@ -307,7 +322,7 @@ function RenewalBadge({ renewals }: { renewals: Account[] }) {
   )
 }
 
-export default function CalendarPnl({ calendarData, hideFiltersOnMobile = false }: CalendarPnlProps) {
+export default function CalendarPnl({ calendarData, hideFiltersOnMobile = false, equityMap = {} }: CalendarPnlProps) {
   const accounts = useUserStore(state => state.accounts)
   const groups = useUserStore(state => state.groups)
   const t = useI18n()
@@ -348,9 +363,7 @@ export default function CalendarPnl({ calendarData, hideFiltersOnMobile = false 
 
   // Use the global news filter store
   const impactLevels = useNewsFilterStore((s) => s.impactLevels)
-  const setImpactLevels = useNewsFilterStore((s) => s.setImpactLevels)
   const selectedCountries = useNewsFilterStore((s) => s.selectedCountries)
-  const setSelectedCountries = useNewsFilterStore((s) => s.setSelectedCountries)
 
   // Update monthEvents when currentDate or financialEvents change
   useEffect(() => {
@@ -376,18 +389,6 @@ export default function CalendarPnl({ calendarData, hideFiltersOnMobile = false 
     setCurrentDate(newDate)
     setDateRange?.({ from: startOfMonth(newDate), to: endOfMonth(newDate) })
   }, [currentDate, setDateRange])
-
-  // Memoize countries array
-  const countries = useMemo(() => {
-    return Array.from(new Set(monthEvents
-      .map(event => event.country)
-      .filter((country): country is string => country !== null && country !== undefined)
-    )).sort((a, b) => {
-      if (a === "United States") return -1;
-      if (b === "United States") return 1;
-      return a.localeCompare(b);
-    });
-  }, [monthEvents]);
 
   // Pre-compute events map by date
   const eventsByDate = useMemo(() => {
@@ -496,8 +497,23 @@ export default function CalendarPnl({ calendarData, hideFiltersOnMobile = false 
     return filtered;
   }, [eventsByDate, impactLevels, selectedCountries]);
 
-  // Memoize monthly and yearly totals
+  // Monthly total: equity-based if available, else trade P&L
   const monthlyTotal = useMemo(() => {
+    const monthEquityDates = Object.keys(equityMap)
+      .filter(d => isSameMonth(new Date(d), currentDate))
+      .sort()
+    if (monthEquityDates.length >= 2) {
+      // Use equity delta over the month
+      const allDates = Object.keys(equityMap).sort()
+      const firstMonthDate = monthEquityDates[0]
+      const priorIdx = allDates.indexOf(firstMonthDate) - 1
+      const startEq = priorIdx >= 0
+        ? (equityMap[allDates[priorIdx]]?.equity ?? 0)
+        : (equityMap[firstMonthDate]?.equity ?? 0)
+      const endEq = equityMap[monthEquityDates[monthEquityDates.length - 1]]?.equity ?? 0
+      if (startEq > 0) return endEq - startEq
+    }
+    // Fallback to trade P&L
     return Object.entries(calendarData).reduce((total, [dateString, dayData]) => {
       const date = new Date(dateString)
       if (isSameMonth(date, currentDate)) {
@@ -505,7 +521,7 @@ export default function CalendarPnl({ calendarData, hideFiltersOnMobile = false 
       }
       return total
     }, 0)
-  }, [calendarData, currentDate])
+  }, [calendarData, currentDate, equityMap])
 
   const yearTotal = useMemo(() => {
     return Object.entries(calendarData).reduce((total, [dateString, dayData]) => {
@@ -517,155 +533,203 @@ export default function CalendarPnl({ calendarData, hideFiltersOnMobile = false 
     }, 0)
   }, [calendarData, currentDate])
 
-  const calculateWeeklyTotal = React.useCallback((index: number, calendarDays: Date[], calendarData: CalendarData) => {
-    const startOfWeekIndex = index - 6
-    const weekDays = calendarDays.slice(startOfWeekIndex, index + 1)
-    return weekDays.reduce((total, day) => {
-      const dayData = calendarData[formatInTimeZone(day, timezone, 'yyyy-MM-dd')]
-      return total + (dayData ? dayData.pnl : 0)
-    }, 0)
-  }, [timezone])
+  // Monthly return rate: (lastEquity - firstEquity) / firstEquity
+  const monthlyReturnRate = useMemo(() => {
+    const monthDates = Object.keys(equityMap)
+      .filter(d => isSameMonth(new Date(d), currentDate))
+      .sort()
+    if (monthDates.length < 2) return null
+
+    // Find equity just before the month (last day of prior month in equityMap)
+    const allDates = Object.keys(equityMap).sort()
+    const firstMonthDate = monthDates[0]
+    const priorIdx = allDates.indexOf(firstMonthDate) - 1
+    const startEquity = priorIdx >= 0
+      ? (equityMap[allDates[priorIdx]]?.equity ?? 0)
+      : (equityMap[firstMonthDate]?.equity ?? 0) - monthlyTotal
+
+    if (startEquity <= 0) return null
+    const lastEquity = equityMap[monthDates[monthDates.length - 1]]?.equity ?? 0
+    return ((lastEquity - startEquity) / startEquity) * 100
+  }, [currentDate, equityMap, monthlyTotal])
+
+  // Daily equity delta: equity[d] - equity[d-1], and return rate based on that
+  const { dailyEquityChanges, dailyReturnRates } = useMemo(() => {
+    const changes: Record<string, number | null> = {}
+    const rates: Record<string, number | null> = {}
+    const sortedDates = Object.keys(equityMap).sort()
+    for (let i = 0; i < sortedDates.length; i++) {
+      const d = sortedDates[i]
+      if (i === 0) {
+        changes[d] = null
+        rates[d] = null
+      } else {
+        const prevD = sortedDates[i - 1]
+        const prevEq = equityMap[prevD]?.equity ?? 0
+        const currEq = equityMap[d]?.equity ?? 0
+        const delta = prevEq > 0 ? currEq - prevEq : null
+        changes[d] = delta
+        rates[d] = delta !== null && prevEq > 0 ? (delta / prevEq) * 100 : null
+      }
+    }
+    return { dailyEquityChanges: changes, dailyReturnRates: rates }
+  }, [equityMap])
 
   return (
     <Card className="h-full flex flex-col">
-      <CardHeader
-        className="flex flex-row items-center justify-between space-y-0 border-b shrink-0 p-3 sm:p-4 h-[56px]"
-      >
-        <div className="flex items-center gap-3">
-          <CardTitle className="text-base sm:text-lg font-semibold truncate capitalize">
-            {viewMode === 'daily'
-              ? formatInTimeZone(currentDate, timezone, 'MMMM yyyy', { locale: dateLocale })
-              : formatInTimeZone(currentDate, timezone, 'yyyy', { locale: dateLocale })}
-          </CardTitle>
-          <div className={cn(
-            "text-sm sm:text-base font-semibold truncate",
-            (viewMode === 'daily' ? monthlyTotal : yearTotal) >= 0
-              ? "text-green-600 dark:text-green-400"
-              : "text-red-600 dark:text-red-400"
-          )}>
-            {formatCurrency(viewMode === 'daily' ? monthlyTotal : yearTotal)}
-          </div>
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1.5">
-            <Button
-              variant="outline"
-              size="icon"
+      <CardHeader className="shrink-0 px-4 pt-3 pb-0 space-y-0 border-b">
+        {/* Row 1: date picker + month/year toggle */}
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-1">
+            <button
               onClick={() => viewMode === 'daily' ? handlePrevMonth() : setCurrentDate(new Date(getYear(currentDate) - 1, 0, 1))}
-              className="h-7 w-7 sm:h-8 sm:w-8"
-              aria-label={viewMode === 'daily' ? "Previous month" : "Previous year"}
+              className="p-1 hover:text-foreground text-muted-foreground"
             >
               <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
+            </button>
+            <span className="text-sm font-semibold">
+              {viewMode === 'daily'
+                ? formatInTimeZone(currentDate, timezone, 'yyyy/MM', { locale: dateLocale })
+                : formatInTimeZone(currentDate, timezone, 'yyyy', { locale: dateLocale })}
+            </span>
+            <button
               onClick={() => viewMode === 'daily' ? handleNextMonth() : setCurrentDate(new Date(getYear(currentDate) + 1, 0, 1))}
-              className="h-7 w-7 sm:h-8 sm:w-8"
-              aria-label={viewMode === 'daily' ? "Next month" : "Next year"}
+              className="p-1 hover:text-foreground text-muted-foreground"
             >
               <ChevronRight className="h-4 w-4" />
-            </Button>
+            </button>
+          </div>
+          <div className="flex items-center gap-1 bg-muted rounded-md p-0.5">
+            <button
+              onClick={() => setViewMode('daily')}
+              className={cn("px-3 py-1 text-xs rounded font-medium transition-colors",
+                viewMode === 'daily' ? "bg-background shadow text-foreground" : "text-muted-foreground")}
+            >月</button>
+            <button
+              onClick={() => setViewMode('weekly')}
+              className={cn("px-3 py-1 text-xs rounded font-medium transition-colors",
+                viewMode === 'weekly' ? "bg-background shadow text-foreground" : "text-muted-foreground")}
+            >年</button>
           </div>
         </div>
+
+        {/* Row 2: monthly P&L + return rate */}
+        {viewMode === 'daily' && (
+          <div className="flex items-end justify-between pb-2">
+            <div>
+              <div className="text-[10px] text-muted-foreground mb-0.5">
+                {formatInTimeZone(currentDate, timezone, 'M', { locale: dateLocale })}月收益 · USD
+              </div>
+              <div className={cn(
+                "text-xl sm:text-2xl font-bold font-mono",
+                monthlyTotal >= 0 ? "text-green-500" : "text-red-500"
+              )}>
+                {monthlyTotal >= 0 ? '+' : ''}{monthlyTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </div>
+            </div>
+            {monthlyReturnRate !== null && (
+              <div className="text-right">
+                <div className="text-[10px] text-muted-foreground mb-0.5">收益率</div>
+                <div className={cn(
+                  "text-xl sm:text-2xl font-bold font-mono",
+                  monthlyReturnRate >= 0 ? "text-green-500" : "text-red-500"
+                )}>
+                  {monthlyReturnRate >= 0 ? '+' : ''}{monthlyReturnRate.toFixed(2)}%
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </CardHeader>
-      <CardContent className="flex-1 min-h-0 p-1.5 sm:p-4">
+      <CardContent className="flex-1 min-h-0 px-3 pb-2 pt-2">
         {viewMode === 'daily' ? (
           <>
-            <div className="grid grid-cols-8 gap-x-px mb-1">
+            {/* Weekday headers */}
+            <div className="grid grid-cols-7 mb-1">
               {WEEKDAYS.map((day) => (
-                <div key={day} className="text-center font-medium text-[9px] sm:text-[11px] text-muted-foreground">
+                <div key={day} className="text-center font-medium text-[10px] sm:text-xs text-muted-foreground py-1">
                   {translateWeekday(t, day)}
                 </div>
               ))}
-              <div className="text-center font-medium text-[9px] sm:text-[11px] text-muted-foreground">
-                {t('calendar.weekdays.weekly')}
-              </div>
             </div>
-            <div className="grid grid-cols-8 auto-rows-fr rounded-lg h-[calc(100%-20px)]">
+
+            {/* Calendar grid — no borders, horizontal dividers between rows */}
+            <div className="grid grid-cols-7 auto-rows-fr h-[calc(100%-28px)]">
               {calendarDays.map((date, index) => {
                 const dateString = format(date, 'yyyy-MM-dd')
                 const dayData = calendarData[dateString]
-                // Check if it's the last day of the week (Saturday for Sunday start, Sunday for Monday start)
-                const isLastDayOfWeek = weekStartsOnMonday ? getDay(date) === 0 : getDay(date) === 6
+                const isFirstDayOfRow = index % 7 === 0
                 const isCurrentMonth = isSameMonth(date, currentDate)
                 const dateEvents = filteredEventsByDate.get(dateString) || []
                 const dateRenewals = renewalsByDate.get(dateString) || []
-                const calculations = dayCalculations.get(dateString) || { maxProfit: 0, maxDrawdown: 0 }
-                const maxProfit = calculations.maxProfit
-                const maxDrawdown = calculations.maxDrawdown
+                const equityData = equityMap[dateString]
+                const equityChange = dailyEquityChanges[dateString]
+                const returnRate = dailyReturnRates[dateString]
+                const hasEquity = isCurrentMonth && equityData && equityData.equity > 0
+                const hasTrades = isCurrentMonth && !!dayData
 
                 return (
-                  <React.Fragment key={dateString}>
-                    <div
-                      className={cn(
-                        "h-full flex flex-col cursor-pointer transition-all rounded-none p-1",
-                        "ring-1 ring-border hover:ring-primary hover:z-10",
-                        dayData && dayData.pnl >= 0
-                          ? "bg-green-50 dark:bg-green-900/20"
-                          : dayData && dayData.pnl < 0
-                            ? "bg-red-50 dark:bg-red-900/20"
-                            : "bg-card",
-                        !isCurrentMonth && "",
-                        isToday(date) && "ring-blue-500 bg-blue-500/5 z-10",
-                        index === 0 && "rounded-tl-lg",
-                        index === calendarDays.length - 7 && "rounded-bl-lg",
-                      )}
-                      onClick={() => {
-                        setSelectedDate(date)
-                      }}
-                    >
-                      <div className="flex justify-between items-start gap-0.5">
-                        <span className={cn(
-                          "text-[9px] sm:text-[11px] font-medium min-w-[14px] text-center",
-                          isToday(date) && "text-primary font-semibold",
-                          !isCurrentMonth && "opacity-50"
-                        )}>
-                          {format(date, 'd')}
-                        </span>
-                        <div className="flex flex-col gap-0.5">
-                          {dateEvents.length > 0 && <EventBadge events={dateEvents} impactLevels={impactLevels} />}
-                          {dateRenewals.length > 0 && <RenewalBadge renewals={dateRenewals} />}
-                        </div>
+                  <div
+                    key={dateString}
+                    className={cn(
+                      "flex flex-col cursor-pointer px-1 py-1.5 transition-colors hover:bg-muted/40",
+                      isFirstDayOfRow && index > 0 && "border-t border-border",
+                      isToday(date) && "bg-primary/5",
+                    )}
+                    onClick={() => setSelectedDate(date)}
+                  >
+                    {/* Date number */}
+                    <span className={cn(
+                      "text-sm sm:text-base font-medium leading-none mb-1",
+                      isCurrentMonth ? "text-foreground" : "text-muted-foreground/40",
+                      isToday(date) && "text-primary font-semibold",
+                    )}>
+                      {format(date, 'd')}
+                    </span>
+
+                    {/* Event badges */}
+                    {(dateEvents.length > 0 || dateRenewals.length > 0) && (
+                      <div className="flex gap-0.5 mb-0.5">
+                        {dateEvents.length > 0 && <EventBadge events={dateEvents} impactLevels={impactLevels} />}
+                        {dateRenewals.length > 0 && <RenewalBadge renewals={dateRenewals} />}
                       </div>
-                      <div className="flex-1 flex items-center justify-center">
-                        {dayData ? (
-                          <div className={cn(
-                            "text-[10px] sm:text-[13px] font-bold truncate text-center font-mono",
-                            dayData.pnl >= 0
-                              ? "text-green-600 dark:text-green-400"
-                              : "text-red-600 dark:text-red-400",
-                            !isCurrentMonth && "opacity-50"
-                          )}>
-                            {formatCurrency(dayData.pnl)}
-                          </div>
-                        ) : null}
-                      </div>
-                    </div>
-                    {isLastDayOfWeek && (() => {
-                      const weeklyTotal = calculateWeeklyTotal(index, calendarDays, calendarData)
-                      return (
-                        <div
-                          className={cn(
-                            "h-full flex items-center justify-center rounded-none cursor-pointer",
-                            "ring-1 ring-border hover:ring-primary hover:z-10",
-                            index === 6 && "rounded-tr-lg",
-                            index === calendarDays.length - 1 && "rounded-br-lg"
-                          )}
-                          onClick={() => setSelectedWeekDate(date)}
-                        >
-                          <div className={cn(
-                            "text-[9px] sm:text-[11px] font-semibold truncate px-0.5",
-                            weeklyTotal >= 0
-                              ? "text-green-600 dark:text-green-400"
-                              : "text-red-600 dark:text-red-400"
-                          )}>
-                            {formatCurrency(weeklyTotal)}
-                          </div>
+                    )}
+
+                    {/* Equity NAV + daily change (Firstrade positions) */}
+                    {hasEquity && (
+                      <>
+                        <div className="text-[11px] sm:text-xs font-mono text-muted-foreground leading-tight">
+                          {formatCompact(equityData!.equity, 'equity')}
                         </div>
-                      )
-                    })()}
-                  </React.Fragment>
+                        {equityChange !== null && (
+                          <div className={cn(
+                            "text-[11px] sm:text-xs font-semibold font-mono leading-tight",
+                            equityChange >= 0 ? "text-green-500" : "text-red-500"
+                          )}>
+                            {formatCompact(equityChange, 'change')}
+                          </div>
+                        )}
+                        {returnRate !== null && (
+                          <div className={cn(
+                            "text-[11px] sm:text-xs font-semibold font-mono leading-tight",
+                            returnRate >= 0 ? "text-green-500" : "text-red-500"
+                          )}>
+                            {returnRate < 0 ? '' : '+'}{returnRate.toFixed(2)}%
+                          </div>
+                        )}
+                      </>
+                    )}
+
+                    {/* Trade P&L (when no equity data) */}
+                    {!hasEquity && hasTrades && (
+                      <div className={cn(
+                        "text-[11px] sm:text-xs font-semibold font-mono leading-tight",
+                        dayData!.pnl >= 0 ? "text-green-500" : "text-red-500"
+                      )}>
+                        {formatCompact(dayData!.pnl, 'change')}
+                      </div>
+                    )}
+                  </div>
                 )
               })}
             </div>
@@ -695,35 +759,6 @@ export default function CalendarPnl({ calendarData, hideFiltersOnMobile = false 
         calendarData={calendarData}
         isLoading={isLoading}
       />
-      <CardFooter className="flex justify-end">
-        {/* View Mode Toggle */}
-        <div className="flex items-center gap-1 border rounded-md p-0.5 bg-muted">
-          <Button
-            variant={viewMode === 'daily' ? 'default' : 'ghost'}
-            size="sm"
-            className={cn(
-              "h-7 px-2 transition-colors",
-              viewMode === 'daily' && "bg-primary text-primary-foreground shadow-sm font-semibold"
-            )}
-            onClick={() => setViewMode('daily')}
-          >
-            <Calendar className="h-4 w-4 mr-1" />
-            <span className="text-xs">{t('calendar.viewMode.daily')}</span>
-          </Button>
-          <Button
-            variant={viewMode === 'weekly' ? 'default' : 'ghost'}
-            size="sm"
-            className={cn(
-              "h-7 px-2 transition-colors",
-              viewMode === 'weekly' && "bg-primary text-primary-foreground shadow-sm font-semibold"
-            )}
-            onClick={() => setViewMode('weekly')}
-          >
-            <CalendarDays className="h-4 w-4 mr-1" />
-            <span className="text-xs">{t('calendar.viewMode.weekly')}</span>
-          </Button>
-        </div>
-      </CardFooter>
     </Card>
   )
 }

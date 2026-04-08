@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { fetchAndSaveDailyEquity } from '@/app/[locale]/dashboard/components/import/firstrade/sync/actions'
-import { getUserId } from '@/server/auth'
+import { createClient } from '@/server/auth'
 
 export async function POST(request: NextRequest) {
   try {
-    await getUserId()
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 })
+    }
     const body = await request.json()
     const { sessionId } = body
 
