@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
-import { Loader2, Trash2, Plus, RefreshCw, MoreVertical, AlertTriangle, WifiOff } from 'lucide-react'
+import { Loader2, Trash2, Plus, RefreshCw, MoreVertical, AlertTriangle, WifiOff, Download } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -203,6 +203,34 @@ export function FirstradeCredentialsManager() {
     }
   }, [loadAccounts])
 
+  const [isSyncingTrades, setIsSyncingTrades] = useState(false)
+  const [syncDays, setSyncDays] = useState(365)
+
+  const handleSyncTrades = useCallback(async (days: number) => {
+    setIsSyncingTrades(true)
+    try {
+      const resp = await fetch(`/api/firstrade/sync-trades?days=${days}`, { method: 'POST' })
+      const data = await resp.json()
+      if (!resp.ok) {
+        toast.error(data.error || '同步失敗')
+        return
+      }
+      const total = data.results?.reduce((s: number, r: any) => s + (r.savedCount ?? 0), 0) ?? 0
+      const errors = data.results?.filter((r: any) => r.error).map((r: any) => r.error) ?? []
+      if (errors.includes('session_expired') || errors.includes('no_session_stored')) {
+        toast.error('連線已過期，請重新連線 Firstrade')
+      } else if (total > 0) {
+        toast.success(`已同步 ${total} 筆新交易（${days} 天）`)
+      } else {
+        toast.success(`無新交易（${days} 天內已是最新）`)
+      }
+    } catch {
+      toast.error('同步失敗，請稍後再試')
+    } finally {
+      setIsSyncingTrades(false)
+    }
+  }, [])
+
   function formatDate(dateString: string) {
     return new Date(dateString).toLocaleString()
   }
@@ -228,6 +256,47 @@ export function FirstradeCredentialsManager() {
             </Button>
           </div>
           <div className="flex gap-2 items-center">
+            {accounts.length > 0 && (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={isSyncingTrades}
+                    className="h-8"
+                  >
+                    {isSyncingTrades ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Download className="h-4 w-4 mr-2" />
+                    )}
+                    同步交易
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-44 p-2" align="end">
+                  <div className="flex flex-col gap-1 text-sm">
+                    <p className="text-xs text-muted-foreground px-2 pb-1">選擇同步範圍</p>
+                    {[
+                      { label: '最近 30 天', days: 30 },
+                      { label: '最近 90 天', days: 90 },
+                      { label: '最近 1 年', days: 365 },
+                      { label: '最近 3 年', days: 1095 },
+                      { label: '全部（5 年）', days: 1825 },
+                    ].map(({ label, days }) => (
+                      <Button
+                        key={days}
+                        variant="ghost"
+                        size="sm"
+                        className="justify-start h-8"
+                        onClick={() => handleSyncTrades(days)}
+                      >
+                        {label}
+                      </Button>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            )}
             {sessionId && accounts.length > 0 && (
               <Button
                 onClick={async () => {
