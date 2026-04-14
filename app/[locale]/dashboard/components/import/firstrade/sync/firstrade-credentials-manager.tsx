@@ -297,20 +297,6 @@ export function FirstradeCredentialsManager() {
                 </PopoverContent>
               </Popover>
             )}
-            {sessionId && accounts.length > 0 && (
-              <Button
-                onClick={async () => {
-                  await performSyncForAllAccounts(sessionId)
-                }}
-                size="sm"
-                variant="outline"
-                disabled={isAutoSyncing}
-                className="h-8"
-              >
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Sync All
-              </Button>
-            )}
             <Button
               onClick={() => setIsAddDialogOpen(true)}
               disabled={isLoading}
@@ -392,18 +378,6 @@ export function FirstradeCredentialsManager() {
                         className="h-8"
                       >
                         重新連線
-                      </Button>
-                    )}
-                    {sessionId && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={async () => {
-                          await performSyncForAccount(account.accountId, sessionId)
-                        }}
-                        disabled={isAutoSyncing}
-                      >
-                        <RefreshCw className="h-4 w-4 text-muted-foreground" />
                       </Button>
                     )}
                     <Popover modal>
