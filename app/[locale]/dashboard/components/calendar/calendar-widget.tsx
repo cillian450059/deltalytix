@@ -98,15 +98,14 @@ export default function CalendarPnl() {
         const { ok, data } = await triggerSnapshot()
         if (ok) {
           const { errors } = parseSnapshotResults(data.results ?? [])
-          if (errors.length > 0) {
-            toast.error('自動同步失敗', { description: errors[0] })
-          } else {
+          if (errors.length === 0) {
             await loadEquity()
             await refreshAllData()
           }
+          // Auto-sync errors are silent — user can retry via "立即同步"
         }
       } catch {
-        // Silent fail for auto-sync — user can retry manually
+        // Silent fail
       }
     })
   }, [loadEquity, refreshAllData])
