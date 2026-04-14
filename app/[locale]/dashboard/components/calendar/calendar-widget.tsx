@@ -6,7 +6,7 @@ import MobileCalendarPnl from "./mobile-calendar"
 import DesktopCalendarPnl from "./desktop-calendar"
 import { useData } from "@/context/data-provider"
 import { Button } from "@/components/ui/button"
-import { RefreshCw, Link2Off } from "lucide-react"
+import { RefreshCw } from "lucide-react"
 import { toast } from "sonner"
 import { DailyEquityRecord } from "@/app/[locale]/dashboard/types/calendar"
 
@@ -65,7 +65,6 @@ export default function CalendarPnl() {
   const [equityMap, setEquityMap] = useState<Record<string, { equity: number; cash: number }>>({})
   const [isSyncing, setIsSyncing] = useState(false)
   const [hasFirstrade, setHasFirstrade] = useState(false)
-  const [needsReconnect, setNeedsReconnect] = useState(false)
   const autoSyncAttempted = useRef(false)
 
   // Load DailyEquity on mount; also check if Firstrade sync is configured
@@ -98,10 +97,8 @@ export default function CalendarPnl() {
       try {
         const { ok, data } = await triggerSnapshot()
         if (ok) {
-          const { errors, needsReconnect: reconnect } = parseSnapshotResults(data.results ?? [])
-          if (reconnect) {
-            setNeedsReconnect(true)
-          } else if (errors.length > 0) {
+          const { errors } = parseSnapshotResults(data.results ?? [])
+          if (errors.length > 0) {
             toast.error('自動同步失敗', { description: errors[0] })
           } else {
             await loadEquity()
@@ -125,18 +122,12 @@ export default function CalendarPnl() {
         return
       }
 
-      const { errors, needsReconnect: reconnect } = parseSnapshotResults(data.results ?? [])
-      if (reconnect) {
-        setNeedsReconnect(true)
-        toast.error('需要重新連線', { description: '請前往匯入設定重新登入 Firstrade' })
-        return
-      }
+      const { errors } = parseSnapshotResults(data.results ?? [])
       if (errors.length > 0) {
         toast.error('同步失敗', { description: errors[0] })
         return
       }
 
-      setNeedsReconnect(false)
       await Promise.all([loadEquity(), refreshAllData()])
       const saved = data.results?.reduce((sum: number, r: any) => sum + (r.tradesSaved ?? 0), 0) ?? 0
       toast.success('同步完成', {
@@ -154,28 +145,16 @@ export default function CalendarPnl() {
       {/* Sync / reconnect button */}
       {hasFirstrade && (
         <div className="flex justify-end px-4 pt-2 pb-0 shrink-0">
-          {needsReconnect ? (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 px-2 text-xs text-orange-500 gap-1"
-              onClick={() => toast.info('請點擊頂部「匯入」按鈕，選擇 Firstrade Sync 重新登入', { duration: 6000 })}
-            >
-              <Link2Off className="h-3 w-3" />
-              重新連線 Firstrade
-            </Button>
-          ) : (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 px-2 text-xs text-muted-foreground gap-1"
-              disabled={isSyncing}
-              onClick={handleSync}
-            >
-              <RefreshCw className={`h-3 w-3 ${isSyncing ? 'animate-spin' : ''}`} />
-              {isSyncing ? '同步中...' : '立即同步'}
-            </Button>
-          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2 text-xs text-muted-foreground gap-1"
+            disabled={isSyncing}
+            onClick={handleSync}
+          >
+            <RefreshCw className={`h-3 w-3 ${isSyncing ? 'animate-spin' : ''}`} />
+            {isSyncing ? '同步中...' : '立即同步'}
+          </Button>
         </div>
       )}
       <div className="flex-1 min-h-0">
